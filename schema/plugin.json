@@ -7,6 +7,10 @@
   "jupyter.lab.toolbars": {
     "Notebook": [
       {
+        "name": "coursekataLogo",
+        "rank": 0
+      },
+      {
         "name": "save",
         "rank": 10
       },
@@ -51,7 +55,7 @@
         "caption": "Restart and run all cells",
         "command": "jupytereverywhere:restart-and-run-all"
       },
-      { "name": "spacer", "type": "spacer", "rank": 37 },
+      { "name": "spacer", "type": "spacer", "rank": 1 },
       {
         "name": "jeKernelSwitcher",
         "rank": 38

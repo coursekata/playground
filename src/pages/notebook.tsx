@@ -6,11 +6,11 @@ import { ILiteRouter } from '@jupyterlite/application';
 import { INotebookTracker, INotebookWidgetFactory } from '@jupyterlab/notebook';
 import { INotebookContent } from '@jupyterlab/nbformat';
 import {
-  ToolbarButton,
   IToolbarWidgetRegistry,
   ISessionContext,
   createToolbarFactory
 } from '@jupyterlab/apputils';
+import { Widget } from '@lumino/widgets';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ITranslator } from '@jupyterlab/translation';
 import { Commands } from '../commands';
@@ -227,19 +227,17 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       await patchPyodideHttp(panel.sessionContext);
     });
 
-    toolbarRegistry.addFactory(
-      'Notebook',
-      'coursekataLogo',
-      () =>
-        new ToolbarButton({
-          label: 'CourseKata',
-          tooltip: 'CourseKata',
-          onClick: () => {
-            window.open('https://coursekata.org', '_blank');
-          },
-          className: 'ck-logo-button'
-        })
-    );
+    toolbarRegistry.addFactory('Notebook', 'coursekataLogo', () => {
+      const widget = new Widget();
+      widget.addClass('ck-logo-button');
+      const anchor = document.createElement('a');
+      anchor.href = 'https://www.coursekata.org';
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.title = 'Visit CourseKata';
+      widget.node.appendChild(anchor);
+      return widget;
+    });
 
     toolbarRegistry.addFactory('Notebook', 'run', () => new RunDropdownButton(commands));
 
