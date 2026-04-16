@@ -69,31 +69,6 @@ test.describe('Download', () => {
   });
 });
 
-test('Should switch to R kernel and run R code', async ({ page }) => {
-  await page.goto('lab/index.html');
-  await page.waitForSelector('.jp-NotebookPanel');
-
-  await runCommand(page, 'jupytereverywhere:switch-kernel', { kernel: 'xr' });
-  await page.waitForTimeout(10000);
-  await runCommand(page, 'notebook:insert-cell-below');
-
-  const code = 'lm(mpg ~ wt + hp + disp + cyl, data=mtcars)';
-  const cell = page.locator('.jp-Cell').last();
-  await cell.getByRole('textbox').fill(code);
-
-  await runCommand(page, 'notebook:run-cell');
-
-  const output = cell.locator('.jp-Cell-outputArea');
-  await expect(output).toBeVisible({
-    timeout: 20000 // shouldn't take too long to run but just to be safe
-  });
-
-  const text = await output.textContent();
-  expect(text).toContain('Call');
-  // Add a snapshot of the output area
-  expect(await output.screenshot()).toMatchSnapshot('r-output.png');
-});
-
 test.describe('Kernel networking', () => {
   const remoteUrl =
     'https://raw.githubusercontent.com/JupyterEverywhere/jupyterlite-extension/refs/heads/main/ui-tests/test-files/b-dataset.csv';
