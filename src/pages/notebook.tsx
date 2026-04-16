@@ -8,21 +8,15 @@ import { INotebookContent } from '@jupyterlab/nbformat';
 import {
   ToolbarButton,
   IToolbarWidgetRegistry,
-  ISessionContext
+  ISessionContext,
+  createToolbarFactory
 } from '@jupyterlab/apputils';
-import { PageConfig } from '@jupyterlab/coreutils';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { ITranslator } from '@jupyterlab/translation';
 import { Commands } from '../commands';
-import { SharingService } from '../sharing-service';
-import { VIEW_ONLY_NOTEBOOK_FACTORY, IViewOnlyNotebookTracker } from '../view-only';
 import { KERNEL_URL_TO_NAME, KERNEL_DISPLAY_NAMES } from '../kernels';
 import { handleNotebookUpload, openNotebookContent } from '../upload';
 
-/**
- * Maps the notebook content language to a kernel name. We currently
- * only support Python and R notebooks, so this function maps them
- * to 'python' and 'xr' respectively. If the language is not recognized,
- * it defaults to 'python' (Pyodide).
- */
 function mapLanguageToKernel(content: INotebookContent): string {
   const rawLang =
     (content?.metadata?.kernelspec?.language as string | undefined)?.toLowerCase() ||
@@ -35,9 +29,6 @@ function mapLanguageToKernel(content: INotebookContent): string {
   return 'python';
 }
 
-/**
- * Patch pyodide HTTP kernel
- */
 async function patchPyodideHttp(sessionContext: ISessionContext): Promise<void> {
   const session = sessionContext.session;
   if (!session) {
@@ -70,45 +61,44 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
   autoStart: true,
   requires: [
     INotebookTracker,
-    IViewOnlyNotebookTracker,
     IToolbarWidgetRegistry,
-    INotebookWidgetFactory
+    INotebookWidgetFactory,
+    ISettingRegistry,
+    ITranslator
   ],
   optional: [ILiteRouter],
   activate: (
     app: JupyterFrontEnd,
     tracker: INotebookTracker,
-    readonlyTracker: IViewOnlyNotebookTracker,
     toolbarRegistry: IToolbarWidgetRegistry,
+    notebookFactory: unknown,
+    settingRegistry: ISettingRegistry,
+    translator: ITranslator,
     router?: ILiteRouter | null
   ) => {
     const { commands, serviceManager } = app;
     const { contents } = serviceManager;
 
-    // Keep this reference so the optional required service is considered used.
-    void readonlyTracker;
+    // Register the settings transformer for our plugin so JupyterLab can load our
+    // jupyter.lab.toolbars.Notebook entries. The factory itself is unused (the Notebook
+    // widget is created by @jupyterlab/notebook-extension), but the side effect of this
+    // call is to register a transform for 'jupytereverywhere:plugin' via settingRegistry.
+    createToolbarFactory(
+      toolbarRegistry,
+      settingRegistry,
+      'Notebook',
+      'jupytereverywhere:plugin',
+      translator
+    );
+    void notebookFactory;
 
     const params = new URLSearchParams(window.location.search);
-
-    // Are we landing on the Files tab directly? In this case, we won't
-    // auto-create a new notebook or activate the notebook sidebar.
-    const nowUrl = new URL(window.location.href);
-    const onFilesPath = /\/lab\/files(?:\/|$)/.test(nowUrl.pathname);
-    const onFilesTab = nowUrl.searchParams.get('tab') === 'files';
-    const onFilesIntent = onFilesPath || onFilesTab;
-
-    let notebookId = params.get('notebook');
     const uploadedNotebookId = params.get('uploaded-notebook');
     const fromUrl = params.get('from');
-
-    if (notebookId?.endsWith('.ipynb')) {
-      notebookId = notebookId.slice(0, -6);
-    }
 
     const openNewNotebookWindow = (kernelParam: 'r' | 'python'): void => {
       const url = new URL(window.location.href);
 
-      url.searchParams.delete('notebook');
       url.searchParams.delete('uploaded-notebook');
       url.searchParams.delete('from');
       url.searchParams.delete('tab');
@@ -118,74 +108,6 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       window.location.href = url.toString();
     };
 
-    /**
-     * Load a shared notebook from the CKHub API
-     */
-    const loadSharedNotebook = async (id: string): Promise<void> => {
-      try {
-        console.log(`Loading shared notebook with ID: ${id}`);
-
-        const apiUrl =
-          PageConfig.getOption('sharing_service_api_url') || 'http://localhost:8080/api/v1';
-        const sharingService = new SharingService(apiUrl);
-
-        console.log(`API URL: ${apiUrl}`);
-        console.log('Retrieving notebook from API...');
-
-        const notebookResponse = await sharingService.retrieve(id);
-        console.log('API Response received:', notebookResponse);
-
-        const { content }: { content: INotebookContent } = notebookResponse;
-
-        if (content.cells) {
-          content.cells.forEach(cell => {
-            cell.metadata = {
-              ...cell.metadata,
-              editable: false
-            };
-          });
-        }
-
-        const { id: responseId, readable_id, domain_id } = notebookResponse;
-        content.metadata = {
-          ...content.metadata,
-          isSharedNotebook: true,
-          sharedId: responseId,
-          readableId: readable_id,
-          domainId: domain_id
-        };
-
-        const filename = `Shared_${readable_id || responseId}.ipynb`;
-
-        await contents.save(filename, {
-          content,
-          format: 'json',
-          type: 'notebook',
-          writable: false
-        });
-
-        await commands.execute('docmanager:open', {
-          path: filename,
-          factory: VIEW_ONLY_NOTEBOOK_FACTORY
-        });
-
-        const url = new URL(window.location.href);
-        url.searchParams.delete('kernel');
-        window.history.replaceState({}, '', url.toString());
-
-        console.log(`Successfully loaded shared notebook: ${filename}`);
-      } catch (error) {
-        console.error('Failed to load shared notebook:', error);
-
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        alert(`Failed to load shared notebook "${id}": ${errorMessage}`);
-        await createNewNotebook();
-      }
-    };
-
-    /**
-     * Create a new blank notebook
-     */
     const createNewNotebook = async (): Promise<void> => {
       try {
         const currentParams = new URLSearchParams(window.location.search);
@@ -240,60 +162,54 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       }
     };
 
-    /**
-     * Open notebook from URL
-     */
-const openNotebookFromProvidedURL = async (url: string): Promise<void> => {
-  try {
-    let fetchUrl = url.trim();
+    const openNotebookFromProvidedURL = async (url: string): Promise<void> => {
+      try {
+        let fetchUrl = url.trim();
 
-    // Strip accidental surrounding quotes copied from spreadsheets, CSVs, etc.
-    if (
-      (fetchUrl.startsWith('"') && fetchUrl.endsWith('"')) ||
-      (fetchUrl.startsWith("'") && fetchUrl.endsWith("'"))
-    ) {
-      fetchUrl = fetchUrl.slice(1, -1);
-    }
+        if (
+          (fetchUrl.startsWith('"') && fetchUrl.endsWith('"')) ||
+          (fetchUrl.startsWith("'") && fetchUrl.endsWith("'"))
+        ) {
+          fetchUrl = fetchUrl.slice(1, -1);
+        }
 
-    // Convert normal GitHub blob URLs to raw notebook URLs immediately.
-    if (fetchUrl.includes('github.com') && fetchUrl.includes('/blob/')) {
-      fetchUrl = fetchUrl
-        .replace('https://github.com/', 'https://raw.githubusercontent.com/')
-        .replace('/blob/', '/');
-    }
+        if (fetchUrl.includes('github.com') && fetchUrl.includes('/blob/')) {
+          fetchUrl = fetchUrl
+            .replace('https://github.com/', 'https://raw.githubusercontent.com/')
+            .replace('/blob/', '/');
+        }
 
-    const response = await fetch(fetchUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch notebook: ${response.status} ${response.statusText}`);
-    }
+        const response = await fetch(fetchUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch notebook: ${response.status} ${response.statusText}`);
+        }
 
-    const parsed = (await response.json()) as INotebookContent;
-    await openNotebookContent(parsed);
+        const parsed = (await response.json()) as INotebookContent;
+        await openNotebookContent(parsed);
 
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.delete('from');
-    window.history.replaceState({}, '', currentUrl.toString());
-  } catch (error) {
-    console.error('Failed to open notebook from URL:', error);
-    alert('Failed to open notebook from URL.');
-  }
-};
-const openNotebookFromURL = async (): Promise<void> => {
-  const url = window.prompt('Enter a GitHub notebook URL or raw .ipynb URL:');
-  if (!url) {
-    return;
-  }
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('from');
+        window.history.replaceState({}, '', currentUrl.toString());
+      } catch (error) {
+        console.error('Failed to open notebook from URL:', error);
+        alert('Failed to open notebook from URL.');
+      }
+    };
 
-  await openNotebookFromProvidedURL(url);
-};
+    const openNotebookFromURL = async (): Promise<void> => {
+      const url = window.prompt('Enter a GitHub notebook URL or raw .ipynb URL:');
+      if (!url) {
+        return;
+      }
 
-    if (notebookId) {
-      void loadSharedNotebook(notebookId);
-    } else if (uploadedNotebookId) {
+      await openNotebookFromProvidedURL(url);
+    };
+
+    if (uploadedNotebookId) {
       void openUploadedNotebook(uploadedNotebookId);
     } else if (fromUrl) {
       void openNotebookFromProvidedURL(fromUrl);
-    } else if (!onFilesIntent) {
+    } else {
       void createNewNotebook();
     }
 
@@ -311,81 +227,57 @@ const openNotebookFromURL = async (): Promise<void> => {
       await patchPyodideHttp(panel.sessionContext);
     });
 
-    for (const toolbarName of ['Notebook', 'ViewOnlyNotebook']) {
-      toolbarRegistry.addFactory(
-        toolbarName,
-        'coursekataLogo',
-        () =>
-          new ToolbarButton({
-            label: 'CourseKata',
-            tooltip: 'CourseKata',
-            onClick: () => {
-              window.open('https://coursekata.org', '_blank');
-            },
-            className: 'ck-logo-button'
-          })
-      );
+    toolbarRegistry.addFactory(
+      'Notebook',
+      'coursekataLogo',
+      () =>
+        new ToolbarButton({
+          label: 'CourseKata',
+          tooltip: 'CourseKata',
+          onClick: () => {
+            window.open('https://coursekata.org', '_blank');
+          },
+          className: 'ck-logo-button'
+        })
+    );
 
-      toolbarRegistry.addFactory(
-        toolbarName,
-        'run',
-        () => new RunDropdownButton(commands)
-      );
+    toolbarRegistry.addFactory('Notebook', 'run', () => new RunDropdownButton(commands));
 
-      toolbarRegistry.addFactory(
-        toolbarName,
-        'createCopy',
-        () =>
-          new ToolbarButton({
-            label: 'Create Copy',
-            tooltip: 'Create an editable copy of this notebook',
-            className: 'je-CreateCopyButton',
-            onClick: () => {
-              void commands.execute(Commands.createCopyNotebookCommand);
-            }
-          })
-      );
-
-toolbarRegistry.addFactory(
-  toolbarName,
-  'upload',
-  () =>
-    new OpenDropdownButton(
-      commands,
-      () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.ipynb,application/json';
-        input.onchange = async () => {
-          const file = input.files?.[0];
-          if (!file) {
-            return;
+    toolbarRegistry.addFactory(
+      'Notebook',
+      'upload',
+      () =>
+        new OpenDropdownButton(
+          commands,
+          () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.ipynb,application/json';
+            input.onchange = async () => {
+              const file = input.files?.[0];
+              if (!file) {
+                return;
+              }
+              await handleNotebookUpload(file);
+            };
+            input.click();
+          },
+          () => {
+            void openNotebookFromURL();
+          },
+          () => {
+            openNewNotebookWindow('r');
+          },
+          () => {
+            openNewNotebookWindow('python');
+          },
+          () => {
+            void commands.execute(Commands.downloadNotebookCommand);
           }
-          await handleNotebookUpload(file);
-        };
-        input.click();
-      },
-      () => {
-        void openNotebookFromURL();
-      },
-      () => {
-        openNewNotebookWindow('r');
-      },
-      () => {
-        openNewNotebookWindow('python');
-      },
-      () => {
-        void commands.execute(Commands.downloadNotebookCommand);
-      }
-    )
-);
+        )
+    );
 
-      toolbarRegistry.addFactory(
-        toolbarName,
-        'jeKernelSwitcher',
-        () => new KernelIndicator(tracker)
-      );
-    }
+    toolbarRegistry.addFactory('Notebook', 'jeKernelSwitcher', () => new KernelIndicator(tracker));
 
     void app.restored.then(() => {
       const url = new URL(window.location.href);
@@ -412,5 +304,8 @@ toolbarRegistry.addFactory(
         }
       }
     });
+
+    void contents;
+    void mapLanguageToKernel;
   }
 };

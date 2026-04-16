@@ -45,7 +45,6 @@ runs:
         cd lite
         if [[ "${MATRIX_MODE}" == "prod" ]]; then
           echo "Building JupyterLite app in production mode"
-          bash ../.github/inject-gh-pages-config.sh
         else
           echo "Building JupyterLite app in test mode"
           bash ../ui-tests/inject-test-config.sh

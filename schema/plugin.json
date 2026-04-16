@@ -5,22 +5,6 @@
   "type": "object",
   "additionalProperties": false,
   "jupyter.lab.toolbars": {
-    "ViewOnlyNotebook": [
-      {
-        "name": "createCopy",
-        "caption": "Create a new editable copy of this notebook",
-        "rank": 30
-      },
-      { "name": "spacer", "type": "spacer", "rank": 32 },
-      {
-        "name": "share",
-        "rank": 35
-      },
-      {
-        "name": "downloadDropdown",
-        "rank": 36
-      }
-    ],
     "Notebook": [
       {
         "name": "save",
@@ -66,14 +50,6 @@
         "name": "restart-and-run",
         "caption": "Restart and run all cells",
         "command": "jupytereverywhere:restart-and-run-all"
-      },
-      {
-        "name": "share",
-        "rank": 35
-      },
-      {
-        "name": "downloadDropdown",
-        "rank": 36
       },
       { "name": "spacer", "type": "spacer", "rank": 37 },
       {
@@ -131,7 +107,7 @@
   "jupyter.lab.transform": true,
   "properties": {
     "toolbar": {
-      "title": "View-only notebook panel toolbar items",
+      "title": "Notebook panel toolbar items",
       "type": "array",
       "default": []
     }
