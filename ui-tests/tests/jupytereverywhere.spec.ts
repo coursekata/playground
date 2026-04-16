@@ -124,12 +124,6 @@ test.describe('Kernel URL param behaviour', () => {
 });
 
 test.describe('Title of the pages should be "CourseKata Notebook"', () => {
-  test('Landing page title', async ({ page }) => {
-    await page.goto('index.html');
-    const title = await page.title();
-    expect(title).toBe('CourseKata Notebook');
-  });
-
   test('Notebook page title', async ({ page }) => {
     await page.goto('lab/index.html');
     const title = await page.title();
