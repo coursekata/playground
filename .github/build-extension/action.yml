@@ -13,13 +13,15 @@ runs:
     - name: Restore Playwright browsers cache
       uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
       with:
-        path: /home/runner/.cache/ms-playwright
+        path: ${{ github.workspace }}/.pw-cache
         key: playwright-browsers-${{ runner.os }}-v1
         restore-keys: |
           playwright-browsers-${{ runner.os }}-
 
     - name: Build the extension
       shell: bash
+      env:
+        PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-cache
       run: |
         set -eux
         python -m pip install .[test]
