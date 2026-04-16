@@ -210,80 +210,80 @@ const plugin: JupyterFrontEndPlugin<void> = {
     /**
      * 1. A "Download as IPyNB" command.
      */
-commands.addCommand(Commands.downloadNotebookCommand, {
-  label: 'Download as a notebook',
-  execute: async args => {
-    void args;
+    commands.addCommand(Commands.downloadNotebookCommand, {
+      label: 'Download as a notebook',
+      execute: async args => {
+        void args;
 
-    const panel = readonlyTracker.currentWidget ?? tracker.currentWidget;
+        const panel = readonlyTracker.currentWidget ?? tracker.currentWidget;
 
-    if (!panel) {
-      console.warn('No active notebook to download');
-      return;
-    }
+        if (!panel) {
+          console.warn('No active notebook to download');
+          return;
+        }
 
-    const content = panel.context.model.toJSON() as INotebookContent;
+        const content = panel.context.model.toJSON() as INotebookContent;
 
-    // Remove sharing-specific metadata
-    const purgedMetadata = { ...content.metadata };
-    delete purgedMetadata.isSharedNotebook;
-    delete purgedMetadata.sharedId;
-    delete purgedMetadata.readableId;
-    delete purgedMetadata.sharedName;
-    delete purgedMetadata.lastShared;
+        // Remove sharing-specific metadata
+        const purgedMetadata = { ...content.metadata };
+        delete purgedMetadata.isSharedNotebook;
+        delete purgedMetadata.sharedId;
+        delete purgedMetadata.readableId;
+        delete purgedMetadata.sharedName;
+        delete purgedMetadata.lastShared;
 
-    // Preserve kernelspec metadata if present
-    const kernelSpec = content.metadata?.kernelspec;
-    if (kernelSpec) {
-      purgedMetadata.kernelspec = kernelSpec;
-    }
+        // Preserve kernelspec metadata if present
+        const kernelSpec = content.metadata?.kernelspec;
+        if (kernelSpec) {
+          purgedMetadata.kernelspec = kernelSpec;
+        }
 
-    const cleanedContent: INotebookContent = {
-      ...content,
-      metadata: purgedMetadata
-    };
+        const cleanedContent: INotebookContent = {
+          ...content,
+          metadata: purgedMetadata
+        };
 
-    const suggestedName =
-      panel.context.path && panel.context.path !== 'Untitled.ipynb'
-        ? panel.context.path.replace(/\.ipynb$/i, '')
-        : generateDefaultNotebookName();
+        const suggestedName =
+          panel.context.path && panel.context.path !== 'Untitled.ipynb'
+            ? panel.context.path.replace(/\.ipynb$/i, '')
+            : generateDefaultNotebookName();
 
-    const input = document.createElement('input');
-    input.value = suggestedName;
-    input.style.width = '100%';
-    input.style.boxSizing = 'border-box';
-    input.style.padding = '8px';
+        const input = document.createElement('input');
+        input.value = suggestedName;
+        input.style.width = '100%';
+        input.style.boxSizing = 'border-box';
+        input.style.padding = '8px';
 
-    const body = new Widget();
-    body.node.appendChild(input);
+        const body = new Widget();
+        body.node.appendChild(input);
 
-    const result = await showDialog({
-      title: 'Download notebook as…',
-      body,
-      buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+        const result = await showDialog({
+          title: 'Download notebook as…',
+          body,
+          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+        });
+
+        if (!result.button.accept) {
+          return;
+        }
+
+        const rawName = input.value.trim() || suggestedName;
+        const fileName = rawName.toLowerCase().endsWith('.ipynb') ? rawName : `${rawName}.ipynb`;
+
+        const blob = new Blob([JSON.stringify(cleanedContent, null, 2)], {
+          type: 'application/json'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
     });
-
-    if (!result.button.accept) {
-      return;
-    }
-
-    const rawName = input.value.trim() || suggestedName;
-    const fileName = rawName.toLowerCase().endsWith('.ipynb') ? rawName : `${rawName}.ipynb`;
-
-    const blob = new Blob([JSON.stringify(cleanedContent, null, 2)], {
-      type: 'application/json'
-    });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-});
 
     /**
      * 2. A "Download as PDF" command.

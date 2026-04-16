@@ -5,11 +5,7 @@ import { KernelIndicator } from '../ui-components/KernelIndicator';
 import { ILiteRouter } from '@jupyterlite/application';
 import { INotebookTracker, INotebookWidgetFactory } from '@jupyterlab/notebook';
 import { INotebookContent } from '@jupyterlab/nbformat';
-import {
-  ToolbarButton,
-  IToolbarWidgetRegistry,
-  ISessionContext
-} from '@jupyterlab/apputils';
+import { ToolbarButton, IToolbarWidgetRegistry, ISessionContext } from '@jupyterlab/apputils';
 import { PageConfig } from '@jupyterlab/coreutils';
 import { Commands } from '../commands';
 import { SharingService } from '../sharing-service';
@@ -243,49 +239,49 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     /**
      * Open notebook from URL
      */
-const openNotebookFromProvidedURL = async (url: string): Promise<void> => {
-  try {
-    let fetchUrl = url.trim();
+    const openNotebookFromProvidedURL = async (url: string): Promise<void> => {
+      try {
+        let fetchUrl = url.trim();
 
-    // Strip accidental surrounding quotes copied from spreadsheets, CSVs, etc.
-    if (
-      (fetchUrl.startsWith('"') && fetchUrl.endsWith('"')) ||
-      (fetchUrl.startsWith("'") && fetchUrl.endsWith("'"))
-    ) {
-      fetchUrl = fetchUrl.slice(1, -1);
-    }
+        // Strip accidental surrounding quotes copied from spreadsheets, CSVs, etc.
+        if (
+          (fetchUrl.startsWith('"') && fetchUrl.endsWith('"')) ||
+          (fetchUrl.startsWith("'") && fetchUrl.endsWith("'"))
+        ) {
+          fetchUrl = fetchUrl.slice(1, -1);
+        }
 
-    // Convert normal GitHub blob URLs to raw notebook URLs immediately.
-    if (fetchUrl.includes('github.com') && fetchUrl.includes('/blob/')) {
-      fetchUrl = fetchUrl
-        .replace('https://github.com/', 'https://raw.githubusercontent.com/')
-        .replace('/blob/', '/');
-    }
+        // Convert normal GitHub blob URLs to raw notebook URLs immediately.
+        if (fetchUrl.includes('github.com') && fetchUrl.includes('/blob/')) {
+          fetchUrl = fetchUrl
+            .replace('https://github.com/', 'https://raw.githubusercontent.com/')
+            .replace('/blob/', '/');
+        }
 
-    const response = await fetch(fetchUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch notebook: ${response.status} ${response.statusText}`);
-    }
+        const response = await fetch(fetchUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch notebook: ${response.status} ${response.statusText}`);
+        }
 
-    const parsed = (await response.json()) as INotebookContent;
-    await openNotebookContent(parsed);
+        const parsed = (await response.json()) as INotebookContent;
+        await openNotebookContent(parsed);
 
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.delete('from');
-    window.history.replaceState({}, '', currentUrl.toString());
-  } catch (error) {
-    console.error('Failed to open notebook from URL:', error);
-    alert('Failed to open notebook from URL.');
-  }
-};
-const openNotebookFromURL = async (): Promise<void> => {
-  const url = window.prompt('Enter a GitHub notebook URL or raw .ipynb URL:');
-  if (!url) {
-    return;
-  }
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('from');
+        window.history.replaceState({}, '', currentUrl.toString());
+      } catch (error) {
+        console.error('Failed to open notebook from URL:', error);
+        alert('Failed to open notebook from URL.');
+      }
+    };
+    const openNotebookFromURL = async (): Promise<void> => {
+      const url = window.prompt('Enter a GitHub notebook URL or raw .ipynb URL:');
+      if (!url) {
+        return;
+      }
 
-  await openNotebookFromProvidedURL(url);
-};
+      await openNotebookFromProvidedURL(url);
+    };
 
     if (notebookId) {
       void loadSharedNotebook(notebookId);
@@ -326,11 +322,7 @@ const openNotebookFromURL = async (): Promise<void> => {
           })
       );
 
-      toolbarRegistry.addFactory(
-        toolbarName,
-        'run',
-        () => new RunDropdownButton(commands)
-      );
+      toolbarRegistry.addFactory(toolbarName, 'run', () => new RunDropdownButton(commands));
 
       toolbarRegistry.addFactory(
         toolbarName,
@@ -346,39 +338,39 @@ const openNotebookFromURL = async (): Promise<void> => {
           })
       );
 
-toolbarRegistry.addFactory(
-  toolbarName,
-  'upload',
-  () =>
-    new OpenDropdownButton(
-      commands,
-      () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.ipynb,application/json';
-        input.onchange = async () => {
-          const file = input.files?.[0];
-          if (!file) {
-            return;
-          }
-          await handleNotebookUpload(file);
-        };
-        input.click();
-      },
-      () => {
-        void openNotebookFromURL();
-      },
-      () => {
-        openNewNotebookWindow('r');
-      },
-      () => {
-        openNewNotebookWindow('python');
-      },
-      () => {
-        void commands.execute(Commands.downloadNotebookCommand);
-      }
-    )
-);
+      toolbarRegistry.addFactory(
+        toolbarName,
+        'upload',
+        () =>
+          new OpenDropdownButton(
+            commands,
+            () => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.ipynb,application/json';
+              input.onchange = async () => {
+                const file = input.files?.[0];
+                if (!file) {
+                  return;
+                }
+                await handleNotebookUpload(file);
+              };
+              input.click();
+            },
+            () => {
+              void openNotebookFromURL();
+            },
+            () => {
+              openNewNotebookWindow('r');
+            },
+            () => {
+              openNewNotebookWindow('python');
+            },
+            () => {
+              void commands.execute(Commands.downloadNotebookCommand);
+            }
+          )
+      );
 
       toolbarRegistry.addFactory(
         toolbarName,
