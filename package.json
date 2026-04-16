@@ -39,7 +39,7 @@
         "copy:favicon": "cp static/favicon.ico dist/favicon.ico && cp static/favicon.ico dist/lab/favicon.ico",
         "copy:spinner-mark": "cp style/icons/coursekata-mark.svg dist/lab/logo.svg",
         "build:lab:all": "jlpm patch:lab:index && jlpm copy:spinner-mark && jlpm copy:favicon",
-        "build:404:all": "mkdir -p dist/lab/404 && cp templates/404-redirect.html dist/lab/404/index.html",
+        "build:404:all": "mkdir -p dist/lab/404 && cp templates/404-redirect.html dist/lab/404/index.html && cp templates/404-redirect.html dist/404.html",
         "build:jupyterlite": "cd lite && jupyter lite build --XeusAddon.environment_file=xeus-environment.yml --output-dir=../dist && cd .. && jlpm copy:landing:template && jlpm build:base:css && jlpm build:lab:all && jlpm build:404:all",
         "build:all": "jlpm build && jlpm build:jupyterlite",
         "build:labextension:dev": "jupyter labextension build --development True .",
