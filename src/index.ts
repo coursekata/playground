@@ -164,7 +164,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       selector: '.jp-Notebook'
     });
 
-    commands.addCommand('jupytereverywhere:switch-kernel', {
+    commands.addCommand(Commands.switchKernelCommand, {
       label: args => {
         const kernel = (args['kernel'] as string) || '';
         const isActive = args['isActive'] as boolean;
@@ -209,8 +209,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
       return window.setTimeout(() => {
         const message = hasManuallySaved
-          ? "It's been 5 minutes since you last saved this notebook. Make sure to save the link to your notebook to edit your work later."
-          : "It's been 5 minutes since you've been working on this notebook. Make sure to save the link to your notebook to edit your work later.";
+          ? "It's been 5 minutes since you last saved this notebook. Make sure to download a copy so you can come back to your work later."
+          : "It's been 5 minutes since you started working on this notebook. Make sure to download a copy so you can come back to your work later.";
 
         Notification.info(message, { autoClose: 8000 });
         onFire();

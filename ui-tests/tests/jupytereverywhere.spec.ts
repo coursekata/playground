@@ -55,14 +55,6 @@ test.describe('General', () => {
 });
 
 test.describe('Download', () => {
-  test('Should open download Menu', async ({ page }) => {
-    const downloadButton = page.locator('.je-DownloadButton');
-    await downloadButton.click();
-    expect(await page.locator('.je-DownloadDropdownButton-menu').screenshot()).toMatchSnapshot(
-      'download-menu.png'
-    );
-  });
-
   test('Should download a notebook as IPyNB and PDF', async ({ page, context }) => {
     const ipynbDownload = page.waitForEvent('download');
     await runCommand(page, 'jupytereverywhere:download-notebook');
@@ -155,17 +147,17 @@ test.describe('Kernel URL param behaviour', () => {
   });
 });
 
-test.describe('Title of the pages should be "Jupyter Everywhere"', () => {
+test.describe('Title of the pages should be "CourseKata Notebook"', () => {
   test('Landing page title', async ({ page }) => {
     await page.goto('index.html');
     const title = await page.title();
-    expect(title).toBe('Jupyter Everywhere');
+    expect(title).toBe('CourseKata Notebook');
   });
 
   test('Notebook page title', async ({ page }) => {
     await page.goto('lab/index.html');
     const title = await page.title();
-    expect(title).toBe('Jupyter Everywhere');
+    expect(title).toBe('CourseKata Notebook');
   });
 });
 

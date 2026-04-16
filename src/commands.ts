@@ -4,5 +4,6 @@ export namespace Commands {
   export const downloadNotebookCommand = 'jupytereverywhere:download-notebook';
   export const downloadPDFCommand = 'jupytereverywhere:download-pdf';
   export const saveNotebookCommand = 'jupytereverywhere:save-notebook';
+  export const switchKernelCommand = 'jupytereverywhere:switch-kernel';
   export const restartMemoryAndRunAllCommand = 'jupytereverywhere:restart-and-run-all';
 }
