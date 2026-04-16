@@ -51,7 +51,11 @@ export async function openNotebookContent(parsed: INotebookContent): Promise<voi
   const serialised = JSON.stringify(parsed);
   localStorage.setItem(`uploaded-notebook:${uploadId}`, serialised);
 
-  window.location.href = `/jupyterlite-extension/lab/index.html?uploaded-notebook=${uploadId}`;
+  const target = new URL(window.location.href);
+  target.search = '';
+  target.searchParams.set('uploaded-notebook', uploadId);
+  target.hash = '';
+  window.location.href = target.toString();
 }
 
 export async function handleNotebookUpload(file: File): Promise<void> {
