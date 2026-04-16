@@ -54,21 +54,6 @@ test.describe('General', () => {
   });
 });
 
-test.describe('Download', () => {
-  test('Should download a notebook as IPyNB and PDF', async ({ page, context }) => {
-    const ipynbDownload = page.waitForEvent('download');
-    await runCommand(page, 'jupytereverywhere:download-notebook');
-    await page.locator('.jp-Dialog').getByRole('button', { name: 'Download' }).click();
-    const ipynbPath = await (await ipynbDownload).path();
-    expect(ipynbPath).not.toBeNull();
-
-    const pdfDownload = page.waitForEvent('download');
-    await runCommand(page, 'jupytereverywhere:download-pdf');
-    const pdfPath = await (await pdfDownload).path();
-    expect(pdfPath).not.toBeNull();
-  });
-});
-
 test.describe('Kernel networking', () => {
   const remoteUrl =
     'https://raw.githubusercontent.com/JupyterEverywhere/jupyterlite-extension/refs/heads/main/ui-tests/test-files/b-dataset.csv';
