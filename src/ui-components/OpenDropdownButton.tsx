@@ -9,13 +9,15 @@ export class OpenDropdownButton extends ToolbarButton {
     openFromURL: () => void,
     openNewRNotebook: () => void,
     openNewPythonNotebook: () => void,
-    downloadNotebook: () => void
+    downloadNotebook: () => void,
+    downloadPDF: () => void
   ) {
     const commandOpenFile = 'jupytereverywhere:file-open-from-file';
     const commandOpenUrl = 'jupytereverywhere:file-open-from-url';
     const commandNewR = 'jupytereverywhere:file-new-r-notebook';
     const commandNewPython = 'jupytereverywhere:file-new-python-notebook';
     const commandDownload = 'jupytereverywhere:file-download-notebook';
+    const commandDownloadPDF = 'jupytereverywhere:file-download-pdf';
 
     if (!commands.hasCommand(commandOpenFile)) {
       commands.addCommand(commandOpenFile, {
@@ -62,6 +64,15 @@ export class OpenDropdownButton extends ToolbarButton {
       });
     }
 
+    if (!commands.hasCommand(commandDownloadPDF)) {
+      commands.addCommand(commandDownloadPDF, {
+        label: 'Download as PDF',
+        execute: () => {
+          downloadPDF();
+        }
+      });
+    }
+
     super({
       label: 'File',
       tooltip: 'File actions',
@@ -75,6 +86,7 @@ export class OpenDropdownButton extends ToolbarButton {
         menu.addItem({ command: commandOpenUrl });
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandDownload });
+        menu.addItem({ command: commandDownloadPDF });
 
         const anchor = this.node.getBoundingClientRect();
         menu.open(anchor.left, anchor.bottom);

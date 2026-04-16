@@ -271,6 +271,9 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           },
           () => {
             void commands.execute(Commands.downloadNotebookCommand);
+          },
+          () => {
+            void commands.execute(Commands.downloadPDFCommand);
           }
         )
     );

@@ -41,9 +41,14 @@ import { DocumentWidget } from '@jupyterlab/docregistry';
 import jsPDF from 'jspdf';
 
 export function exportNotebookAsPDF(
-  notebook: DocumentWidget<Notebook, INotebookModel>
+  notebook: DocumentWidget<Notebook, INotebookModel>,
+  fileName?: string
 ): Promise<void> {
-  const name = PathExt.basename(notebook.context.path, PathExt.extname(notebook.context.path));
+  const defaultName = PathExt.basename(
+    notebook.context.path,
+    PathExt.extname(notebook.context.path)
+  );
+  const name = fileName ?? defaultName;
 
   const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
 
@@ -51,7 +56,7 @@ export function exportNotebookAsPDF(
     doc.html(notebook.content.node, {
       callback: () => {
         try {
-          doc.save(`${name}.pdf`);
+          doc.save(name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`);
           resolve();
         } catch (err) {
           reject(err);
