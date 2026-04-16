@@ -1,15 +1,9 @@
 export namespace Commands {
-  export const openCompetitions = 'jupytereverywhere:open-competitions';
-  export const openFiles = 'jupytereverywhere:open-files';
-  export const routeFiles = 'jupytereverywhere:files-route';
   export const openNotFound = 'jupytereverywhere:open-not-found';
   export const routeNotFound = 'jupytereverywhere:not-found-route';
-  export const openHelp = 'jupytereverywhere:open-help';
   export const downloadNotebookCommand = 'jupytereverywhere:download-notebook';
   export const downloadPDFCommand = 'jupytereverywhere:download-pdf';
-  export const saveAndShareNotebookCommand = 'jupytereverywhere:save-and-share';
-  export const shareNotebookCommand = 'jupytereverywhere:share-notebook';
-  export const createCopyNotebookCommand = 'jupytereverywhere:create-copy-notebook';
-  export const restartMemoryCommand = 'jupytereverywhere:restart-memory';
+  export const saveNotebookCommand = 'jupytereverywhere:save-notebook';
+  export const switchKernelCommand = 'jupytereverywhere:switch-kernel';
   export const restartMemoryAndRunAllCommand = 'jupytereverywhere:restart-and-run-all';
 }

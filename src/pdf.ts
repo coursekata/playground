@@ -39,15 +39,16 @@ import { PathExt } from '@jupyterlab/coreutils';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 
 import jsPDF from 'jspdf';
-import { ViewOnlyNotebook } from './view-only';
 
-/**
- * Export a notebook panel as a PDF by rasterizing the DOM using jsPDF + html2canvas.
- */
 export function exportNotebookAsPDF(
-  notebook: DocumentWidget<Notebook | ViewOnlyNotebook, INotebookModel>
+  notebook: DocumentWidget<Notebook, INotebookModel>,
+  fileName?: string
 ): Promise<void> {
-  const name = PathExt.basename(notebook.context.path, PathExt.extname(notebook.context.path));
+  const defaultName = PathExt.basename(
+    notebook.context.path,
+    PathExt.extname(notebook.context.path)
+  );
+  const name = fileName ?? defaultName;
 
   const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
 
@@ -55,7 +56,7 @@ export function exportNotebookAsPDF(
     doc.html(notebook.content.node, {
       callback: () => {
         try {
-          doc.save(`${name}.pdf`);
+          doc.save(name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`);
           resolve();
         } catch (err) {
           reject(err);

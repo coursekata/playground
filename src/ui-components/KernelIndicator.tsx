@@ -21,7 +21,9 @@ export class KernelIndicator extends Widget {
 
   private connectSignals(): void {
     const panel = this.tracker.currentWidget;
-    if (!panel) return;
+    if (!panel) {
+      return;
+    }
 
     panel.sessionContext.statusChanged.connect(() => {
       this.refreshIndicator();

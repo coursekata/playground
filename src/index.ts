@@ -1,27 +1,16 @@
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
-import { Dialog, showDialog, ReactWidget, Notification } from '@jupyterlab/apputils';
+import { Dialog, showDialog, Notification } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
-import { PageConfig } from '@jupyterlab/coreutils';
 import { INotebookContent } from '@jupyterlab/nbformat';
 import { IStateDB, StateDB } from '@jupyterlab/statedb';
-
-import { SharingService } from './sharing-service';
-
-import { createSuccessDialog, createErrorDialog } from './ui-components/share-dialog';
 
 import { exportNotebookAsPDF } from './pdf';
 import routesPlugin from './routes';
 import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
-// import { competitions } from './pages/competitions';
 import { notebookPlugin } from './pages/notebook';
 import { generateDefaultNotebookName, isNotebookEmpty } from './notebook-utils';
-import {
-  IViewOnlyNotebookTracker,
-  viewOnlyNotebookFactoryPlugin,
-  ViewOnlyNotebookPanel
-} from './view-only';
 
 import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
 import { singleDocumentMode } from './single-mode';
@@ -30,293 +19,121 @@ import { placeholderPlugin } from './placeholders';
 import { EverywhereIcons } from './icons';
 import { sessionDialogs } from './dialogs';
 
-/**
- * Generate a shareable URL for the currently active notebook.
- * @param notebookID – The ID of the notebook to share (can be readable_id or sharedId).
- * @returns A URL string that points to the notebook with the given notebookID.
- */
-function generateShareURL(notebookID: string): string {
-  const currentUrl = new URL(window.location.href);
-  const baseUrl = `${currentUrl.protocol}//${currentUrl.host}${currentUrl.pathname}`;
-  return `${baseUrl}?notebook=${notebookID}`;
-}
-
-/**
- * Sets or updates the 'notebook' query parameter in the current URL to the given notebookID.
- * If the parameter already exists with the same value, no change is made.
- * @param notebookID - The ID of the notebook to set in the URL.
- */
-function setNotebookParamInUrl(notebookID: string): void {
-  const url = new URL(window.location.href);
-  if (url.searchParams.get('notebook') !== notebookID) {
-    url.searchParams.set('notebook', notebookID);
-    window.history.replaceState({}, '', url.toString());
-  }
-}
-
-const manuallySharing = new WeakSet<NotebookPanel | ViewOnlyNotebookPanel>();
-
-/**
- * Show a dialog with a shareable link for the notebook.
- * @param sharingService - The sharing service instance to use for generating the shareable link.
- * @param notebookContent - The content of the notebook to share, from which we extract the ID.
- */
-async function showShareDialog(sharingService: SharingService, notebookContent: INotebookContent) {
-  // Grab the readable ID, or fall back to the UUID.
-  const readableID = notebookContent.metadata?.readableId as string;
-  const sharedID = notebookContent.metadata?.sharedId as string;
-
-  const notebookID = readableID ?? sharedID;
-
-  if (!notebookID) {
-    console.error('No notebook ID found for sharing');
-    return;
-  }
-
-  const shareableLink = generateShareURL(notebookID);
-
-  const dialogResult = await showDialog({
-    title: 'Here is the shareable link to your notebook:',
-    body: ReactWidget.create(createSuccessDialog(shareableLink)),
-    buttons: [Dialog.okButton({ label: 'Copy Link!' })]
-  });
-
-  if (dialogResult.button.label === 'Copy Link!') {
-    try {
-      await navigator.clipboard.writeText(shareableLink);
-    } catch (err) {
-      console.error('Failed to copy link:', err);
-    }
-  }
-}
-
-/**
- * Notebook share/save handler. This function handles both sharing a new notebook and
- * updating an existing shared notebook.
- * @param notebookPanel - The notebook panel to handle sharing for.
- * @param sharingService - The sharing service instance to use for sharing operations.
- * @param manual - Whether this is a manual share operation triggered by the user, i.e., it is
- * true when the user clicks "Share Notebook" from the menu.
- */
-async function handleNotebookSharing(
-  notebookPanel: NotebookPanel | ViewOnlyNotebookPanel,
-  sharingService: SharingService,
-  manual: boolean,
-  onManualSave: () => void
-) {
-  const notebookContent = notebookPanel.context.model.toJSON() as INotebookContent;
-
-  const isViewOnly = notebookContent.metadata?.isSharedNotebook === true;
-  const sharedId = notebookContent.metadata?.sharedId as string | undefined;
-  const defaultName = generateDefaultNotebookName();
-
-  // Mark that the user has performed at least one manual save in this session.
-  // We do this early in the manual flow for clarity; the local save already happened
-  // in the command handlers and this flag only affects reminder wording.
-  if (manual && !isViewOnly) {
-    onManualSave();
-  }
-
-  try {
-    if (isViewOnly) {
-      // Skip CKHub sync for view-only notebooks
-      console.log('View-only notebook: skipping CKHub sync and showing share URL.');
-      if (manual) {
-        await showShareDialog(sharingService, notebookContent);
-      }
-      return;
-    }
-    if (sharedId) {
-      console.log('Updating notebook:', sharedId);
-      await sharingService.update(sharedId, notebookContent);
-
-      console.log('Notebook automatically synced to CKHub');
-    } else {
-      const shareResponse = await sharingService.share(notebookContent);
-
-      notebookContent.metadata = {
-        ...notebookContent.metadata,
-        sharedId: shareResponse.notebook.id,
-        readableId: shareResponse.notebook.readable_id,
-        sharedName: defaultName,
-        lastShared: new Date().toISOString()
-      };
-
-      notebookPanel.context.model.fromJSON(notebookContent);
-      await notebookPanel.context.save();
-
-      try {
-        const notebookID =
-          (notebookContent.metadata?.readableId as string | undefined) ??
-          (notebookContent.metadata?.sharedId as string | undefined);
-        if (notebookID) {
-          setNotebookParamInUrl(notebookID);
-        }
-      } catch (e) {
-        console.warn('Failed to update URL with shareable notebook ID:', e);
-      }
-    }
-
-    if (manual) {
-      await showShareDialog(sharingService, notebookContent);
-    }
-  } catch (error) {
-    console.warn('Failed to sync notebook to CKHub:', error);
-    await showDialog({
-      title: manual ? 'Error Sharing Notebook' : 'Sync Failed',
-      body: ReactWidget.create(createErrorDialog(error)),
-      buttons: [Dialog.okButton()]
-    });
-  }
-}
-
-/**
- * JUPYTEREVERYWHERE EXTENSION
- */
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
   description: 'A Jupyter extension for k12 education',
   autoStart: true,
-  requires: [INotebookTracker, IViewOnlyNotebookTracker],
-  activate: (
-    app: JupyterFrontEnd,
-    tracker: INotebookTracker,
-    readonlyTracker: IViewOnlyNotebookTracker
-  ) => {
+  requires: [INotebookTracker],
+  activate: (app: JupyterFrontEnd, tracker: INotebookTracker) => {
     const { commands } = app;
 
-    // Get API URL from configuration or use a default
-    const apiUrl =
-      PageConfig.getOption('sharing_service_api_url') || 'http://localhost:8080/api/v1';
+    commands.addCommand(Commands.downloadNotebookCommand, {
+      label: 'Download as a notebook',
+      execute: async args => {
+        void args;
 
-    const sharingService = new SharingService(apiUrl);
+        const panel = tracker.currentWidget;
 
-    /**
-     * Hook into notebook saves using the saveState signal to handle CKHub sharing.
-     * Disabled for now in this simplified version.
-     */
-    tracker.widgetAdded.connect((sender, widget) => {
-      widget.context.saveState.connect(async (sender, saveState) => {
-        void sender;
-        if (saveState === 'completed') {
-          if (manuallySharing.has(widget)) {
-            return;
-          }
-          // Auto-share disabled in this simplified version.
+        if (!panel) {
+          console.warn('No active notebook to download');
+          return;
         }
-      });
+
+        const content = panel.context.model.toJSON() as INotebookContent;
+
+        const suggestedName =
+          panel.context.path && panel.context.path !== 'Untitled.ipynb'
+            ? panel.context.path.replace(/\.ipynb$/i, '')
+            : generateDefaultNotebookName();
+
+        const input = document.createElement('input');
+        input.value = suggestedName;
+        input.style.width = '100%';
+        input.style.boxSizing = 'border-box';
+        input.style.padding = '8px';
+
+        const body = new Widget();
+        body.node.appendChild(input);
+
+        const result = await showDialog({
+          title: 'Download notebook as…',
+          body,
+          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+        });
+
+        if (!result.button.accept) {
+          return;
+        }
+
+        const rawName = input.value.trim() || suggestedName;
+        const fileName = rawName.toLowerCase().endsWith('.ipynb') ? rawName : `${rawName}.ipynb`;
+
+        const blob = new Blob([JSON.stringify(content, null, 2)], {
+          type: 'application/json'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
     });
 
-    /**
-     * 1. A "Download as IPyNB" command.
-     */
-commands.addCommand(Commands.downloadNotebookCommand, {
-  label: 'Download as a notebook',
-  execute: async args => {
-    void args;
-
-    const panel = readonlyTracker.currentWidget ?? tracker.currentWidget;
-
-    if (!panel) {
-      console.warn('No active notebook to download');
-      return;
-    }
-
-    const content = panel.context.model.toJSON() as INotebookContent;
-
-    // Remove sharing-specific metadata
-    const purgedMetadata = { ...content.metadata };
-    delete purgedMetadata.isSharedNotebook;
-    delete purgedMetadata.sharedId;
-    delete purgedMetadata.readableId;
-    delete purgedMetadata.sharedName;
-    delete purgedMetadata.lastShared;
-
-    // Preserve kernelspec metadata if present
-    const kernelSpec = content.metadata?.kernelspec;
-    if (kernelSpec) {
-      purgedMetadata.kernelspec = kernelSpec;
-    }
-
-    const cleanedContent: INotebookContent = {
-      ...content,
-      metadata: purgedMetadata
-    };
-
-    const suggestedName =
-      panel.context.path && panel.context.path !== 'Untitled.ipynb'
-        ? panel.context.path.replace(/\.ipynb$/i, '')
-        : generateDefaultNotebookName();
-
-    const input = document.createElement('input');
-    input.value = suggestedName;
-    input.style.width = '100%';
-    input.style.boxSizing = 'border-box';
-    input.style.padding = '8px';
-
-    const body = new Widget();
-    body.node.appendChild(input);
-
-    const result = await showDialog({
-      title: 'Download notebook as…',
-      body,
-      buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
-    });
-
-    if (!result.button.accept) {
-      return;
-    }
-
-    const rawName = input.value.trim() || suggestedName;
-    const fileName = rawName.toLowerCase().endsWith('.ipynb') ? rawName : `${rawName}.ipynb`;
-
-    const blob = new Blob([JSON.stringify(cleanedContent, null, 2)], {
-      type: 'application/json'
-    });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-});
-
-    /**
-     * 2. A "Download as PDF" command.
-     */
     commands.addCommand(Commands.downloadPDFCommand, {
       label: 'Download as PDF',
       execute: async args => {
         void args;
 
-        const panel = readonlyTracker.currentWidget ?? tracker.currentWidget;
+        const panel = tracker.currentWidget;
 
         if (!panel) {
           console.warn('No active notebook to download as PDF');
           return;
         }
 
+        const suggestedName =
+          panel.context.path && panel.context.path !== 'Untitled.ipynb'
+            ? panel.context.path.replace(/\.ipynb$/i, '')
+            : generateDefaultNotebookName();
+
+        const input = document.createElement('input');
+        input.value = suggestedName;
+        input.style.width = '100%';
+        input.style.boxSizing = 'border-box';
+        input.style.padding = '8px';
+
+        const body = new Widget();
+        body.node.appendChild(input);
+
+        const result = await showDialog({
+          title: 'Download PDF as…',
+          body,
+          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+        });
+
+        if (!result.button.accept) {
+          return;
+        }
+
+        const rawName = input.value.trim() || suggestedName;
+
         try {
-          await exportNotebookAsPDF(panel);
+          await exportNotebookAsPDF(panel, rawName);
         } catch (error) {
           console.error('Failed to export notebook as PDF:', error);
           await showDialog({
             title: 'Error exporting PDF',
-            body: ReactWidget.create(createErrorDialog(error)),
+            body: 'An error occurred while exporting the notebook as a PDF.',
             buttons: [Dialog.okButton()]
           });
         }
       }
     });
 
-    /**
-     * Add a command to restart the notebook kernel, terming it as "memory",
-     * and run all cells after the restart.
-     */
     commands.addCommand(Commands.restartMemoryAndRunAllCommand, {
       label: 'Restart Notebook Memory and Run All Cells',
       icon: EverywhereIcons.fastForward,
@@ -329,7 +146,7 @@ commands.addCommand(Commands.downloadNotebookCommand, {
         }
 
         const result = await showDialog({
-          title: 'Would you like to restart the notebook’s memory and rerun all cells?',
+          title: 'Would you like to restart the notebook\u2019s memory and rerun all cells?',
           buttons: [Dialog.cancelButton({ label: 'Cancel' }), Dialog.okButton({ label: 'Restart' })]
         });
 
@@ -344,36 +161,15 @@ commands.addCommand(Commands.downloadNotebookCommand, {
       }
     });
 
-    // Track user time, and show a reminder to save the notebook once after
-    // five minutes of editing (i.e., once it becomes non-empty and dirty)
-    // using a toast notification.
     let saveReminderTimeout: number | null = null;
-    let isSaveReminderScheduled = false; // a 5-minute timer is scheduled, but it hasn't fired yet
-    let hasShownSaveReminder = false; // we've already shown the toast once for this notebook
-    let hasManuallySaved = false; // whether the user has manually saved at least once in this session
+    let isSaveReminderScheduled = false;
+    let hasShownSaveReminder = false;
+    let hasManuallySaved = false;
 
-    /**
-     * Share disabled in simplified version.
-     */
-    const markManualSave = () => {
-      hasManuallySaved = true;
-    };
-
-    commands.addCommand(Commands.shareNotebookCommand, {
-      label: 'Share Notebook',
-      execute: async () => {
-        console.info('Share is disabled in this version.');
-      }
-    });
-
-    /**
-     * Local-only save command.
-     * Activated on Accel+S and does not attempt to share.
-     */
-    commands.addCommand(Commands.saveAndShareNotebookCommand, {
+    commands.addCommand(Commands.saveNotebookCommand, {
       label: 'Save Notebook',
       execute: async () => {
-        const panel = readonlyTracker.currentWidget ?? tracker.currentWidget;
+        const panel = tracker.currentWidget;
         if (!panel) {
           console.warn('No active notebook to save');
           return;
@@ -389,12 +185,12 @@ commands.addCommand(Commands.downloadNotebookCommand, {
     });
 
     app.commands.addKeyBinding({
-      command: Commands.saveAndShareNotebookCommand,
+      command: Commands.saveNotebookCommand,
       keys: ['Accel S'],
       selector: '.jp-Notebook'
     });
 
-    commands.addCommand('jupytereverywhere:switch-kernel', {
+    commands.addCommand(Commands.switchKernelCommand, {
       label: args => {
         const kernel = (args['kernel'] as string) || '';
         const isActive = args['isActive'] as boolean;
@@ -433,109 +229,21 @@ commands.addCommand(Commands.downloadNotebookCommand, {
       }
     });
 
-    /**
-     * Add custom Create Copy notebook command
-     * Note: this command is supported and displayed only for View Only notebooks.
-     */
-    commands.addCommand(Commands.createCopyNotebookCommand, {
-      label: 'Create Copy',
-      execute: async () => {
-        try {
-          const readonlyPanel = readonlyTracker.currentWidget;
-
-          if (!readonlyPanel) {
-            console.warn('No view-only notebook is currently active.');
-            return;
-          }
-
-          const originalContent = readonlyPanel.context.model.toJSON() as INotebookContent;
-          // Remove any sharing-specific metadata from the copy,
-          // as we create a fresh notebook with new metadata below.
-          const purgedMetadata = { ...originalContent.metadata };
-          delete purgedMetadata.isSharedNotebook;
-          delete purgedMetadata.sharedId;
-          delete purgedMetadata.readableId;
-          delete purgedMetadata.domainId;
-          delete purgedMetadata.sharedName;
-          delete purgedMetadata.lastShared;
-
-          // Ensure that we preserve kernelspec metadata if present
-          const kernelSpec = originalContent.metadata?.kernelspec;
-
-          // Remove cell-level editable=false; as the notebook has
-          // now been copied and should be possible to write to.
-          const cleanedCells =
-            originalContent.cells?.map(cell => {
-              const cellCopy = { ...cell };
-              cellCopy.metadata = { ...cellCopy.metadata };
-              delete cellCopy.metadata.editable;
-              return cellCopy;
-            }) ?? [];
-
-          if (kernelSpec) {
-            purgedMetadata.kernelspec = kernelSpec;
-          }
-
-          const copyContent: INotebookContent = {
-            ...originalContent,
-            cells: cleanedCells,
-            metadata: purgedMetadata
-          };
-
-          const result = await app.serviceManager.contents.newUntitled({
-            type: 'notebook'
-          });
-
-          await app.serviceManager.contents.save(result.path, {
-            type: 'notebook',
-            format: 'json',
-            content: copyContent
-          });
-
-          // Open the notebook in the normal notebook factory, and
-          // close the previously opened notebook (the view-only one).
-          await commands.execute('docmanager:open', {
-            path: result.path
-          });
-
-          await readonlyPanel.close();
-
-          // Remove notebook param from the URL
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.delete('notebook');
-          window.history.replaceState({}, '', currentUrl.toString());
-
-          console.log(`Notebook copied as: ${result.path}`);
-        } catch (error) {
-          console.error('Failed to create notebook copy:', error);
-          await showDialog({
-            title: 'Error while creating a copy of the notebook',
-            body: ReactWidget.create(createErrorDialog(error)),
-            buttons: [Dialog.okButton()]
-          });
-        }
-      }
-    });
-
-    /**
-     * Helper to start the save reminder timer. Clears any existing timer
-     * and sets a new one to show the notification after 5 minutes.
-     */
     function startSaveReminder(currentTimeout: number | null, onFire: () => void): number {
       if (currentTimeout) {
         window.clearTimeout(currentTimeout);
       }
       return window.setTimeout(() => {
         const message = hasManuallySaved
-          ? "It's been 5 minutes since you last saved this notebook. Make sure to save the link to your notebook to edit your work later."
-          : "It's been 5 minutes since you've been working on this notebook. Make sure to save the link to your notebook to edit your work later.";
+          ? "It's been 5 minutes since you last saved this notebook. Make sure to download a copy so you can come back to your work later."
+          : "It's been 5 minutes since you started working on this notebook. Make sure to download a copy so you can come back to your work later.";
 
         Notification.info(message, { autoClose: 8000 });
         onFire();
-      }, 300 * 1000); // once after 5 minutes
+      }, 300 * 1000);
     }
 
-    tracker.widgetAdded.connect((_, panel) => {
+    tracker.widgetAdded.connect((_, panel: NotebookPanel) => {
       if (saveReminderTimeout) {
         window.clearTimeout(saveReminderTimeout);
         saveReminderTimeout = null;
@@ -549,11 +257,9 @@ commands.addCommand(Commands.downloadNotebookCommand, {
         }
 
         const content = panel.context.model.toJSON() as INotebookContent;
-        // Skip for view-only notebooks
-        if (panel.context.model.readOnly || content.metadata?.isSharedNotebook === true) {
+        if (panel.context.model.readOnly) {
           return;
         }
-        // Schedule after the notebook becomes non-empty
         if (isNotebookEmpty(content)) {
           return;
         }
@@ -568,18 +274,12 @@ commands.addCommand(Commands.downloadNotebookCommand, {
         });
       };
 
-      // After the model is ready, check immediately and on any content change.
       void panel.context.ready.then(() => {
-        // We cover the case where the notebook loads already non-empty, say,
-        // if the user uploads a notebook into the application.
         maybeScheduleSaveReminder();
         panel.context.model.contentChanged.connect(() => {
-          maybeScheduleSaveReminder(); // schedule when first content appears
+          maybeScheduleSaveReminder();
         });
 
-        // Reset the reminder timer whenever the user saves manually.
-        // We clear any pending timer and wait for the next edit (dirty state)
-        // to schedule a fresh 5-minute reminder.
         panel.context.saveState.connect((_, state) => {
           if (state === 'completed') {
             if (saveReminderTimeout) {
@@ -588,20 +288,8 @@ commands.addCommand(Commands.downloadNotebookCommand, {
             }
             isSaveReminderScheduled = false;
             hasShownSaveReminder = false;
-            // Note: we do not reschedule here; it will be scheduled on the next content change
-            // once the notebook becomes dirty again.
           }
         });
-      });
-
-      // If a view-only notebook is opened or becomes active, ensure no reminder can fire.
-      readonlyTracker.widgetAdded.connect(() => {
-        if (saveReminderTimeout) {
-          window.clearTimeout(saveReminderTimeout);
-          saveReminderTimeout = null;
-        }
-        isSaveReminderScheduled = false;
-        hasShownSaveReminder = false;
       });
 
       panel.disposed.connect(() => {
@@ -611,11 +299,6 @@ commands.addCommand(Commands.downloadNotebookCommand, {
         }
       });
     });
-
-    void sharingService;
-    void showShareDialog;
-    void handleNotebookSharing;
-    void markManualSave;
   }
 };
 
@@ -631,7 +314,6 @@ const stateDBShim: JupyterFrontEndPlugin<IStateDB> = {
 
 export default [
   stateDBShim,
-  viewOnlyNotebookFactoryPlugin,
   notebookFactoryPlugin,
   plugin,
   notebookPlugin,

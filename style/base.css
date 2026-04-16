@@ -1,3 +1,5 @@
+/* stylelint-disable no-descending-specificity */
+
 /*
     See the JupyterLab Developer Guide for useful CSS Patterns:
 
@@ -25,48 +27,12 @@
   --je-cell-height: 34px;
   --je-toastify-z-index: calc(var(--toastify-z-index) + 2);
   --je-document-padding: calc(var(--je-scale) * 42px);
-  --je-sidebar-width: calc(var(--je-scale) * 110px);
   --je-toolbar-height: calc(var(--je-scale) * 56px);
   --je-margin-below-toolbar: calc(var(--je-scale) * 10px);
-  --je-lilac: #ffffff;
+  --je-lilac: #fff;
   --je-border-color: #d7d7d7;
   --je-slate-blue-gradient:
     linear-gradient(90deg, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 20%) 100%), #4b3187;
-}
-
-.je-DownloadDropdownButton-menu,
-.je-KernelSwitcherDropdownButton-menu {
-  border-radius: 2px;
-  color: var(--je-slate-blue);
-  font-family: var(--je-font-family);
-  border-collapse: collapse;
-  border: 1px solid var(--je-border-color);
-  background: #fff;
-}
-
-.je-DownloadDropdownButton-menu .lm-Menu-item,
-.je-KernelSwitcherDropdownButton-menu .lm-Menu-item {
-  border-top: 1px solid var(--je-border-color);
-  cursor: pointer;
-}
-
-.je-DownloadDropdownButton-menu .lm-Menu-item:first-of-type,
-.je-KernelSwitcherDropdownButton-menu .lm-Menu-item:first-of-type {
-  border: 0;
-}
-
-.je-DropdownMenu {
-  font-size: calc(var(--je-scale) * 20px);
-  font-weight: 600;
-}
-
-.je-DropdownMenu .lm-Menu-itemLabel {
-  padding: 6px 10px;
-}
-
-.je-DropdownMenu .lm-Menu-itemSubmenuIcon,
-.je-DropdownMenu .lm-Menu-itemIcon {
-  display: none;
 }
 
 .jp-Dialog-content {
@@ -96,7 +62,7 @@
   clip-path: rect(
     calc(var(--je-document-padding) + var(--je-toolbar-height) + var(--je-margin-below-toolbar))
       calc(100% - var(--je-document-padding)) calc(100% - var(--je-document-padding))
-      calc(var(--je-document-padding) + var(--je-sidebar-width)) round var(--je-dialog-round-corners)
+      var(--je-document-padding) round var(--je-dialog-round-corners)
   );
 }
 
@@ -119,27 +85,6 @@
   justify-content: center;
 }
 
-.je-share-link {
-  background: #f0f0f0;
-  padding: 10px;
-  border-radius: 3px;
-  margin-bottom: 20px;
-  word-break: break-all;
-  font-family: monospace;
-}
-
-.je-PageTitle {
-  font-weight: 600;
-  font-family: var(--je-font-family);
-  font-size: calc(var(--je-scale) * 42px);
-}
-
-.je-PageTitle-icon > svg {
-  height: calc(var(--je-scale) * 36px);
-  margin-left: calc(var(--je-scale) * 24px);
-  margin-right: calc(var(--je-scale) * 16px);
-}
-
 .jp-toastContainer {
   z-index: var(--je-toastify-z-index);
 }
@@ -159,19 +104,43 @@
   position: absolute;
   right: 8px;
   top: 50%;
-  transform: translateY(-50%) scale(calc(var(--je-scale) * 2.1));
-  opacity: 0;
+  transform: translateY(-50%) scale(1.15) !important;
+  opacity: 0 !important;
   transition: opacity 0.15s ease-in-out;
+  color: #fe5b7d !important;
 }
 
-/* Don't show run button on raw cells */
 .jp-RawCell .jp-InputArea-prompt-run.je-cell-run-button {
   display: none;
 }
 
-.jp-Cell:hover:not(.jp-RawCell) .jp-InputArea-prompt-run.je-cell-run-button,
 .jp-Cell.jp-mod-active:not(.jp-RawCell) .jp-InputArea-prompt-run.je-cell-run-button {
-  opacity: 1;
+  opacity: 1 !important;
+}
+
+.jp-InputArea-prompt-run.je-cell-run-button circle {
+  fill: #fe5b7d !important;
+}
+
+.jp-InputArea-prompt-run.je-cell-run-button:hover circle {
+  fill: #e24f6e !important;
+}
+
+.jp-InputArea-prompt-run.je-cell-run-button svg,
+.jp-InputArea-prompt-run.je-cell-run-button svg *,
+.jp-InputArea-prompt-run.je-cell-run-button .jp-Icon,
+.jp-InputArea-prompt-run.je-cell-run-button .jp-Icon * {
+  fill: #fe5b7d !important;
+  stroke: #fe5b7d !important;
+}
+
+.jp-InputArea-prompt-run.je-cell-run-button:hover,
+.jp-InputArea-prompt-run.je-cell-run-button:hover svg,
+.jp-InputArea-prompt-run.je-cell-run-button:hover svg *,
+.jp-InputArea-prompt-run.je-cell-run-button:hover .jp-Icon,
+.jp-InputArea-prompt-run.je-cell-run-button:hover .jp-Icon * {
+  fill: #e24f6e !important;
+  stroke: #e24f6e !important;
 }
 
 /* Hide all dirty state indicators */
@@ -247,33 +216,68 @@ consistent with code cells */
   align-items: center;
 }
 
-.jp-SideBar {
-  --jp-layout-color1: #e6e6e6;
-  --jp-layout-color2: #fff;
-  --jp-border-width: 0px;
-}
+/* ------------------------------------------------------------------ */
 
-.jp-SideBar.lm-TabBar {
-  min-width: var(--je-sidebar-width);
-  max-width: var(--je-sidebar-width);
-}
+/* Toolbars: base styles, then JE overrides                           */
 
-.jp-SideBar .lm-TabBar-tab:first-of-type {
-  margin-bottom: calc(var(--je-scale) * 20px);
-}
-
-.jp-SideBar .lm-TabBar-tabIcon > svg {
-  width: initial;
-  scale: var(--je-scale);
-}
+/* ------------------------------------------------------------------ */
 
 .jp-Toolbar {
   --jp-ui-font-color1: var(--je-slate-blue);
   --jp-ui-font-family: var(--je-font-family);
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px !important;
+}
+
+.jp-Toolbar-item {
+  margin-right: 6px !important;
+}
+
+.jp-ToolbarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+}
+
+.jp-ToolbarButton svg {
+  width: 16px;
+  height: 16px;
+  stroke: #412c88;
+  fill: none;
+}
+
+.jp-ToolbarButtonComponent {
+  border-radius: 0 !important;
+  padding: 2px 4px !important;
+}
+
+.jp-ToolbarButtonComponent svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .jp-ToolbarButtonComponent-label {
   font-weight: 600;
+  font-size: 16px !important;
+}
+
+.jp-ToolbarButtonComponent-label span:first-child {
+  color: #fe5b7d;
+}
+
+.jp-ToolbarButtonComponent-label:has(> span) span:first-child {
+  color: #fe5b7d !important;
+}
+
+jp-button[aria-label='Download'] svg {
+  width: 16px !important;
+  height: 16px !important;
+  fill: #412c88 !important;
+  stroke: #412c88 !important;
 }
 
 .je-KernelSwitcherButton.jp-ToolbarButtonComponent::part(content) {
@@ -290,21 +294,32 @@ consistent with code cells */
   min-width: 18px;
 }
 
-/* Main area widget base styles */
+/* Main area widget: full-width toolbar band */
 .jp-MainAreaWidget > .jp-Toolbar {
-  border-radius: 0;
-  min-height: var(--je-toolbar-height) !important;
-  box-shadow: none;
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: 6px 14px !important;
+  margin: 0 0 10px !important;
+  border-radius: 0 !important;
+  background: #f3f3f3 !important;
+  border-top: 1px solid #e0e0e0 !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  box-shadow: none !important;
+}
+
+.jp-MainAreaWidget > .jp-Toolbar .jp-Toolbar-item {
+  margin-right: 8px !important;
 }
 
 .jp-MainAreaWidget > .jp-Toolbar .jp-ToolbarButtonComponent-label {
-  font-size: calc(var(--je-scale) * 21px);
+  font-size: 18px !important;
+  font-weight: 600;
 }
 
 .jp-MainAreaWidget > .jp-Toolbar .jp-ToolbarButtonComponent > svg {
   height: initial;
   width: initial;
-  scale: var(--je-scale);
+  scale: 0.62 !important;
 }
 
 .jp-MainAreaWidget > :not(.jp-Toolbar) {
@@ -315,7 +330,7 @@ consistent with code cells */
 
 .jp-Notebook {
   --jp-code-font-size: calc(var(--je-scale) * 16px);
-  --jp-cell-editor-background: #ffffff;
+  --jp-cell-editor-background: #fff;
   --jp-cell-editor-border-color: #cfcfcf;
   --jp-border-width: calc(var(--je-scale) * 1px);
 }
@@ -323,41 +338,155 @@ consistent with code cells */
 .jp-Cell,
 .jp-CodeCell .jp-Cell-inputWrapper,
 .jp-MarkdownCell .jp-InputArea,
-.jp-RawCell .jp-InputArea,
-.jp-ToolbarButtonComponent {
+.jp-RawCell .jp-InputArea {
   border-radius: 0 !important;
 }
 
-/* View Only header */
-.je-ViewOnlyHeader {
-  min-height: 40px;
+/* ------------------------------------------------------------------ */
+
+/* Notebook panel toolbar: CourseKata logo and tool cluster           */
+
+/* ------------------------------------------------------------------ */
+
+.jp-NotebookPanel-toolbar {
   display: flex;
   align-items: center;
-  background: var(--je-slate-blue);
 }
 
-.je-ViewOnlyHeader-content {
-  color: white;
-  font-family: var(--je-font-family);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  padding: 8px 16px;
+.ck-logo-button {
+  width: 110px;
+  height: 28px;
+  margin-right: 16px;
+  margin-left: 2px;
+  flex: 0 0 auto;
+}
+
+.ck-logo-button a {
+  display: block;
   width: 100%;
+  height: 100%;
+  background: url('./icons/coursekata-logo.svg') no-repeat center left;
+  background-size: contain;
 }
 
-.jp-MainAreaWidget > .je-ViewOnlyHeader-wrapper {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+.jp-NotebookPanel-toolbar .jp-Toolbar-spacer {
+  flex: 1 1 auto;
 }
 
-.je-ViewOnlyHeader-wrapper + .jp-Notebook {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+.jp-NotebookPanel-toolbar .jp-Toolbar-item {
+  margin-right: 4px;
 }
 
-.jp-NotebookPanel-toolbar.je-ViewOnlyNotebookToolbar {
-  border: 1px solid var(--je-slate-blue) !important;
+.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent {
+  padding: 1px 2px !important;
+}
+
+.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent-label {
+  font-size: 14px !important;
+}
+
+.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent > svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.jp-NotebookPanel-toolbar jp-button.jp-ToolbarButtonComponent .jp-ToolbarButtonComponent-label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+
+/* Per-tool icon sizing */
+.jp-NotebookPanel-toolbar [data-jp-item-name='run'] svg {
+  width: 14px !important;
+  height: 18px !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='interrupt'] svg,
+.jp-NotebookPanel-toolbar [data-jp-item-name='restart'] svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='jeKernelSwitcher'] svg {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+/* Color the + icons CourseKata red */
+.jp-NotebookPanel-toolbar [data-jp-item-name='insert'] svg[data-icon='ui-components:add'] path,
+.jp-NotebookPanel-toolbar
+  [data-jp-item-name='insert-text']
+  svg[data-icon='ui-components:add']
+  path {
+  stroke: #fe5b7d !important;
+}
+
+/* Hide tools we don't use */
+.jp-NotebookPanel-toolbar [data-jp-item-name='restart-and-run'],
+.jp-NotebookPanel-toolbar [data-jp-item-name='kernelStatus'] {
+  display: none !important;
+}
+
+/* Replace Download text+icon with a simple custom icon */
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] .jp-ToolbarButtonComponent-label {
+  display: none !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] .jp-ToolbarButtonComponent > svg {
+  display: none !important;
+}
+
+.jp-NotebookPanel-toolbar
+  [data-jp-item-name='downloadDropdown']
+  jp-button.jp-ToolbarButtonComponent::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: url('./icons/download-simple.svg') no-repeat center;
+  background-size: contain;
+  vertical-align: middle;
+  position: relative;
+  top: 3px;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button {
+  --focus-stroke-outer: transparent !important;
+  --focus-stroke-inner: transparent !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button::part(control) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] .jp-ToolbarButtonComponent:focus,
+.jp-NotebookPanel-toolbar
+  [data-jp-item-name='downloadDropdown']
+  .jp-ToolbarButtonComponent:focus-visible,
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button:focus,
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button:focus::part(control),
+.jp-NotebookPanel-toolbar
+  [data-jp-item-name='downloadDropdown']
+  jp-button:focus-visible::part(control),
+.jp-NotebookPanel-toolbar
+  [data-jp-item-name='downloadDropdown']
+  jp-button[focus-visible]::part(control) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 #jp-main-dock-panel[data-mode='single-document'] {
@@ -368,51 +497,6 @@ consistent with code cells */
 #jp-main-dock-panel[data-mode='single-document'] .jp-MainAreaWidget {
   border-radius: 0;
   background: transparent;
-}
-
-.jp-ToolbarButtonComponent.je-CreateCopyButton {
-  background: var(--je-slate-blue);
-  color: white;
-  border-radius: 4px;
-  font-family: var(--je-font-family);
-  font-weight: 600;
-  padding: 3px 10px;
-  border: none;
-  box-shadow: none !important;
-}
-
-.jp-ToolbarButtonComponent.je-CreateCopyButton:hover {
-  background: #2c1f5c;
-}
-
-.je-LeaveDialog-note {
-  font-family: var(--je-font-family);
-  font-size: calc(var(--je-scale) * 16px);
-  color: var(--je-slate-blue);
-  text-align: center;
-}
-
-.je-LeaveDialog.jp-Dialog-body {
-  order: 2;
-}
-
-/* we reserve space for the close button */
-@supports selector(:has(*)) {
-  .jp-Dialog-content:has(> .je-LeaveDialog.jp-Dialog-body) > .jp-Dialog-header {
-    padding-right: 28px;
-  }
-}
-
-.jp-Dialog.je-LeaveDialog-container .jp-Dialog-close-button,
-.jp-Dialog-content.je-LeaveDialog-container .jp-Dialog-close-button {
-  position: absolute;
-  top: -16px;
-  right: -8px;
-  transform: scale(calc(var(--je-scale) * 1.3));
-}
-
-.jp-Dialog .jp-Dialog-close-button .jp-Icon {
-  --jp-inverse-layout-color3: var(--je-slate-blue);
 }
 
 .je-NotFound {
@@ -456,366 +540,11 @@ consistent with code cells */
 }
 
 /* ------------------------------------------------------------------ */
-/* CourseKata logo at far left of toolbar                             */
+
+/* Kernel indicator                                                   */
+
 /* ------------------------------------------------------------------ */
 
-.jp-NotebookPanel-toolbar {
-  display: flex;
-  align-items: center;
-}
-
-.jp-NotebookPanel-toolbar::before {
-  content: '';
-  display: inline-block;
-  width: 120px;
-  height: 32px;
-  margin-right: 20px;
-  margin-left: 10px;
-  background: url('./icons/coursekata-logo.svg') no-repeat center left;
-  background-size: contain;
-  flex: 0 0 auto;
-}
-/* Safer run button styling */
-.jp-InputArea-prompt-run.je-cell-run-button {
-  transform: translateY(-50%) scale(1.35);
-}
-
-.jp-InputArea-prompt-run.je-cell-run-button circle {
-  fill: #fe5b7d !important;
-}
-
-.jp-InputArea-prompt-run.je-cell-run-button:hover circle {
-  fill: #e24f6e !important;
-}
-/* Run button: smaller and CourseKata red */
-.jp-InputArea-prompt-run.je-cell-run-button {
-  transform: translateY(-50%) scale(1.15) !important;
-  opacity: 1;
-  color: #fe5b7d !important;
-}
-
-.jp-InputArea-prompt-run.je-cell-run-button svg,
-.jp-InputArea-prompt-run.je-cell-run-button svg *,
-.jp-InputArea-prompt-run.je-cell-run-button .jp-Icon,
-.jp-InputArea-prompt-run.je-cell-run-button .jp-Icon * {
-  fill: #fe5b7d !important;
-  stroke: #fe5b7d !important;
-}
-
-.jp-InputArea-prompt-run.je-cell-run-button:hover,
-.jp-InputArea-prompt-run.je-cell-run-button:hover svg,
-.jp-InputArea-prompt-run.je-cell-run-button:hover svg *,
-.jp-InputArea-prompt-run.je-cell-run-button:hover .jp-Icon,
-.jp-InputArea-prompt-run.je-cell-run-button:hover .jp-Icon * {
-  fill: #e24f6e !important;
-  stroke: #e24f6e !important;
-}
-/* ------------------------------------------------------------------ */
-/* Toolbar: smaller controls, full-width band, flatter styling        */
-/* ------------------------------------------------------------------ */
-
-/* Full-width shaded toolbar band */
-.jp-MainAreaWidget > .jp-Toolbar {
-  width: 100% !important;
-  min-height: 44px !important;
-  padding: 6px 14px !important;
-  margin: 0 0 10px 0 !important;
-  border-radius: 0 !important;
-  background: #f3f3f3 !important;
-  border-top: 1px solid #e0e0e0 !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-  box-shadow: none !important;
-}
-
-/* Make toolbar text and icons smaller */
-.jp-MainAreaWidget > .jp-Toolbar .jp-ToolbarButtonComponent-label {
-  font-size: 18px !important;
-  font-weight: 600;
-}
-
-.jp-MainAreaWidget > .jp-Toolbar .jp-ToolbarButtonComponent > svg {
-  scale: 0.62 !important;
-}
-
-/* Tighten spacing between toolbar items */
-.jp-MainAreaWidget > .jp-Toolbar .jp-Toolbar-item {
-  margin-right: 8px !important;
-}
-
-/* Remove extra rounding from toolbar buttons */
-.jp-ToolbarButtonComponent {
-  border-radius: 0 !important;
-  padding: 2px 4px !important;
-}
-
-/* Make the Open button align nicely with the logo */
-.jp-NotebookPanel-toolbar::before {
-  width: 110px;
-  height: 28px;
-  margin-right: 16px;
-  margin-left: 2px;
-}
-/* Color the + symbol before Code and Text */
-.jp-ToolbarButtonComponent-label:has(> span) span:first-child {
-  color: #fe5b7d !important;
-}
-/* ------------------------------------------------ */
-/* Smaller toolbar controls                         */
-/* ------------------------------------------------ */
-
-.jp-ToolbarButtonComponent-label {
-  font-size: 16px !important;
-}
-
-.jp-ToolbarButtonComponent svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-.jp-Toolbar-item {
-  margin-right: 6px !important;
-}
-
-.jp-Toolbar {
-  min-height: 42px !important;
-}
-/* Make + before Code and Text CourseKata red */
-.jp-ToolbarButtonComponent-label span:first-child {
-  color: #fe5b7d;
-}
-/* ------------------------------------------------------------------ */
-/* Toolbar refinements                                                */
-/* ------------------------------------------------------------------ */
-
-/* ------------------------------------------------ */
-/* Notebook toolbar: exact sizing + plus-icon color */
-/* ------------------------------------------------ */
-
-/* Make notebook toolbar controls smaller */
-.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent-label {
-  font-size: 14px !important;
-}
-
-.jp-NotebookPanel-toolbar .jp-Toolbar-item {
-  margin-right: 4px !important;
-}
-
-.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent {
-  padding: 1px 3px !important;
-}
-
-/* Smaller standard toolbar SVG icons */
-.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent > svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-/* Slightly smaller run/interrupt/restart family */
-.jp-NotebookPanel-toolbar [data-jp-item-name='run'] svg {
-  width: 16px !important;
-  height: 21px !important;
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='interrupt'] svg,
-.jp-NotebookPanel-toolbar [data-jp-item-name='restart'] svg {
-  width: 20px !important;
-  height: 20px !important;
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='restart-and-run'] svg {
-  width: 26px !important;
-  height: 18px !important;
-}
-
-/* Make only the + icons CourseKata red */
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='insert']
-  svg[data-icon='ui-components:add']
-  path,
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='insert-text']
-  svg[data-icon='ui-components:add']
-  path {
-  stroke: #fe5b7d !important;
-}
-/* ------------------------------------------------ */
-/* Toolbar cleanup: size, alignment, spacing        */
-/* ------------------------------------------------ */
-
-/* Keep logo left, push the whole tool cluster right */
-.jp-NotebookPanel-toolbar .jp-Toolbar-item {
-  order: 3;
-}
-
-.jp-NotebookPanel-toolbar .jp-Toolbar-spacer {
-  order: 2 !important;
-  flex: 1 1 auto !important;
-}
-
-/* Make all toolbar labels the same size */
-.jp-NotebookPanel-toolbar jp-button.jp-ToolbarButtonComponent .jp-ToolbarButtonComponent-label {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
-}
-
-/* Make all toolbar icons smaller */
-.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent > svg {
-  width: 16px !important;
-  height: 16px !important;
-}
-
-/* Fine-tune a few wider icons so they look balanced */
-.jp-NotebookPanel-toolbar [data-jp-item-name='run'] svg {
-  width: 14px !important;
-  height: 18px !important;
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='interrupt'] svg,
-.jp-NotebookPanel-toolbar [data-jp-item-name='restart'] svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='restart-and-run'] svg {
-  width: 22px !important;
-  height: 16px !important;
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] svg {
-  width: 18px !important;
-  height: 18px !important;
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='jeKernelSwitcher'] svg {
-  width: 10px !important;
-  height: 10px !important;
-}
-
-/* Tighten spacing a little */
-.jp-NotebookPanel-toolbar .jp-Toolbar-item {
-  margin-right: 4px !important;
-}
-
-.jp-NotebookPanel-toolbar .jp-ToolbarButtonComponent {
-  padding: 1px 2px !important;
-}
-
-/* Keep + icons CourseKata red */
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='insert']
-  svg[data-icon='ui-components:add']
-  path,
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='insert-text']
-  svg[data-icon='ui-components:add']
-  path {
-  stroke: #fe5b7d !important;
-}
-/* Replace Download text+icon with a simple custom icon */
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  .jp-ToolbarButtonComponent-label {
-  display: none !important;
-}
-
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  .jp-ToolbarButtonComponent
-  > svg {
-  display: none !important;
-}
-
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  jp-button.jp-ToolbarButtonComponent::before {
-  content: '';
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  background: url('./icons/download-simple.svg') no-repeat center;
-  background-size: contain;
-  vertical-align: middle;
-  position: relative;
-  top: 3px;
-}
-/* Show run button only for active cell */
-.jp-InputArea-prompt-run.je-cell-run-button {
-  opacity: 0 !important;
-}
-
-.jp-Cell.jp-mod-active .jp-InputArea-prompt-run.je-cell-run-button {
-  opacity: 1 !important;
-}
-.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] .jp-ToolbarButtonComponent:focus,
-.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] .jp-ToolbarButtonComponent:focus-visible,
-.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button:focus,
-.jp-NotebookPanel-toolbar [data-jp-item-name='downloadDropdown'] jp-button:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-/* Remove lingering focus box on Download button */
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  jp-button::part(control) {
-  outline: none !important;
-  box-shadow: none !important;
-  border: none !important;
-}
-
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  jp-button:focus::part(control),
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  jp-button:focus-visible::part(control),
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  jp-button[focus-visible]::part(control) {
-  outline: none !important;
-  box-shadow: none !important;
-  border: none !important;
-}
-.jp-NotebookPanel-toolbar
-  [data-jp-item-name='downloadDropdown']
-  jp-button {
-  --focus-stroke-outer: transparent !important;
-  --focus-stroke-inner: transparent !important;
-}
-/* Fix size and color of download icon */
-.jp-ToolbarButton svg {
-  width: 16px;
-  height: 16px;
-  stroke: #412c88;   /* CourseKata purple used elsewhere */
-  fill: none;
-}
-/* Improve toolbar alignment and spacing */
-.jp-Toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Keep toolbar buttons vertically aligned */
-.jp-ToolbarButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-}
-/* Normalize download button icon */
-jp-button[aria-label="Download"] svg {
-  width: 16px !important;
-  height: 16px !important;
-  fill: #412c88 !important;   /* CourseKata purple */
-  stroke: #412c88 !important;
-}
-.jp-NotebookPanel-toolbar [data-jp-item-name='restart-and-run'] {
-  display: none !important;
-}
-.jp-NotebookPanel-toolbar [data-jp-item-name='kernelStatus'] {
-  display: none !important;
-}
 .ck-KernelIndicator {
   font-weight: 600;
   padding: 0 6px;
@@ -835,14 +564,12 @@ jp-button[aria-label="Download"] svg {
   0% {
     opacity: 0.45;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     opacity: 0.45;
   }
-}
-
-.jp-NotebookPanel-toolbar [data-jp-item-name='kernelStatus'] {
-  display: none !important;
 }

@@ -34,7 +34,7 @@ export function detectNotebookLanguage(notebook: Partial<INotebookContent>): 'py
  * @param {File} file - The notebook file (.ipynb) to upload.
  * @returns {Promise<void>} - A promise that resolves when the upload is complete.
  */
- 
+
 export async function openNotebookContent(parsed: INotebookContent): Promise<void> {
   const lang = detectNotebookLanguage(parsed);
   console.log(`Detected notebook language: ${lang}`);
@@ -51,15 +51,19 @@ export async function openNotebookContent(parsed: INotebookContent): Promise<voi
   const serialised = JSON.stringify(parsed);
   localStorage.setItem(`uploaded-notebook:${uploadId}`, serialised);
 
-  window.location.href = `/jupyterlite-extension/lab/index.html?uploaded-notebook=${uploadId}`;
-} 
- 
+  const target = new URL(window.location.href);
+  target.search = '';
+  target.searchParams.set('uploaded-notebook', uploadId);
+  target.hash = '';
+  window.location.href = target.toString();
+}
+
 export async function handleNotebookUpload(file: File): Promise<void> {
   try {
     const content = await file.text();
     const parsed = JSON.parse(content) as INotebookContent;
 
-await openNotebookContent(parsed);
+    await openNotebookContent(parsed);
   } catch (err) {
     if (err instanceof DOMException && err.name === 'QuotaExceededError') {
       const result = await showDialog({
