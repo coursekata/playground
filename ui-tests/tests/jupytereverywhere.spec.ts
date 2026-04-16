@@ -58,6 +58,7 @@ test.describe('Download', () => {
   test('Should download a notebook as IPyNB and PDF', async ({ page, context }) => {
     const ipynbDownload = page.waitForEvent('download');
     await runCommand(page, 'jupytereverywhere:download-notebook');
+    await page.locator('.jp-Dialog').getByRole('button', { name: 'Download' }).click();
     const ipynbPath = await (await ipynbDownload).path();
     expect(ipynbPath).not.toBeNull();
 
