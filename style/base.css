@@ -27,7 +27,6 @@
   --je-cell-height: 34px;
   --je-toastify-z-index: calc(var(--toastify-z-index) + 2);
   --je-document-padding: calc(var(--je-scale) * 42px);
-  --je-sidebar-width: calc(var(--je-scale) * 110px);
   --je-toolbar-height: calc(var(--je-scale) * 56px);
   --je-margin-below-toolbar: calc(var(--je-scale) * 10px);
   --je-lilac: #fff;
@@ -63,8 +62,7 @@
   clip-path: rect(
     calc(var(--je-document-padding) + var(--je-toolbar-height) + var(--je-margin-below-toolbar))
       calc(100% - var(--je-document-padding)) calc(100% - var(--je-document-padding))
-      calc(var(--je-document-padding) + var(--je-sidebar-width)) round
-      var(--je-dialog-round-corners)
+      var(--je-document-padding) round var(--je-dialog-round-corners)
   );
 }
 
