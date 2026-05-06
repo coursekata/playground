@@ -10,6 +10,7 @@ import routesPlugin from './routes';
 import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
 import { notebookPlugin } from './pages/notebook';
+import { getCurrentFileHandle, saveToHandle } from './filesystem';
 import { generateDefaultNotebookName, isNotebookEmpty } from './notebook-utils';
 
 import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
@@ -18,6 +19,8 @@ import { notebookFactoryPlugin } from './notebook-factory';
 import { placeholderPlugin } from './placeholders';
 import { EverywhereIcons } from './icons';
 import { sessionDialogs } from './dialogs';
+
+const _downloadCopyCount = new Map<string, number>();
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
@@ -41,10 +44,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         const content = panel.context.model.toJSON() as INotebookContent;
 
-        const suggestedName =
+        const baseName =
           panel.context.path && panel.context.path !== 'Untitled.ipynb'
             ? panel.context.path.replace(/\.ipynb$/i, '')
             : generateDefaultNotebookName();
+        const copyN = (_downloadCopyCount.get(baseName) ?? 0) + 1;
+        _downloadCopyCount.set(baseName, copyN);
+        const suggestedName = copyN === 1 ? `${baseName}_copy` : `${baseName}_copy${copyN}`;
 
         const input = document.createElement('input');
         input.value = suggestedName;
@@ -58,7 +64,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const result = await showDialog({
           title: 'Download notebook as…',
           body,
-          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+          buttons: [Dialog.cancelButton({ className: 'ck-btn' }), Dialog.okButton({ label: 'Download', className: 'ck-btn' })]
         });
 
         if (!result.button.accept) {
@@ -80,6 +86,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+        try { sessionStorage.setItem(`ck-last-downloaded:${panel.context.path}`, JSON.stringify(content.cells ?? [])); } catch {}
       }
     });
 
@@ -112,7 +119,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const result = await showDialog({
           title: 'Download PDF as…',
           body,
-          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+          buttons: [Dialog.cancelButton({ className: 'ck-btn' }), Dialog.okButton({ label: 'Download', className: 'ck-btn' })]
         });
 
         if (!result.button.accept) {
@@ -147,7 +154,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         const result = await showDialog({
           title: 'Would you like to restart the notebook\u2019s memory and rerun all cells?',
-          buttons: [Dialog.cancelButton({ label: 'Cancel' }), Dialog.okButton({ label: 'Restart' })]
+          buttons: [Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }), Dialog.okButton({ label: 'Restart', className: 'ck-btn' })]
         });
 
         if (result.button.accept) {
@@ -161,11 +168,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    let saveReminderTimeout: number | null = null;
-    let isSaveReminderScheduled = false;
-    let hasShownSaveReminder = false;
-    let hasManuallySaved = false;
-
     commands.addCommand(Commands.saveNotebookCommand, {
       label: 'Save Notebook',
       execute: async () => {
@@ -174,20 +176,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
           console.warn('No active notebook to save');
           return;
         }
-        if (panel.context.model.readOnly) {
-          console.info('Notebook is read-only, skipping save.');
+
+        const fileHandle = getCurrentFileHandle();
+        if (fileHandle) {
+          if (!panel.context.model.dirty) {
+            return;
+          }
+          const content = panel.context.model.toJSON() as INotebookContent;
+          const text = JSON.stringify(content, null, 2);
+          try {
+            await saveToHandle(fileHandle, text);
+            await panel.context.save();
+            Notification.success('Saved.', { autoClose: 2000 });
+          } catch (err) {
+            console.error('Failed to save to file handle:', err);
+            Notification.warning('Could not save to file.', { autoClose: 4000 });
+          }
           return;
         }
 
-        hasManuallySaved = true;
-        await panel.context.save();
+        // No file handle yet — fall through to Save as… (new notebook or GitHub notebook)
+        await commands.execute(Commands.saveToFile);
       }
     });
 
     app.commands.addKeyBinding({
       command: Commands.saveNotebookCommand,
       keys: ['Accel S'],
-      selector: '.jp-Notebook'
+      selector: '.jp-NotebookPanel'
     });
 
     commands.addCommand(Commands.switchKernelCommand, {
@@ -229,76 +245,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    function startSaveReminder(currentTimeout: number | null, onFire: () => void): number {
-      if (currentTimeout) {
-        window.clearTimeout(currentTimeout);
-      }
-      return window.setTimeout(() => {
-        const message = hasManuallySaved
-          ? "It's been 5 minutes since you last saved this notebook. Make sure to download a copy so you can come back to your work later."
-          : "It's been 5 minutes since you started working on this notebook. Make sure to download a copy so you can come back to your work later.";
-
-        Notification.info(message, { autoClose: 8000 });
-        onFire();
-      }, 300 * 1000);
-    }
-
-    tracker.widgetAdded.connect((_, panel: NotebookPanel) => {
-      if (saveReminderTimeout) {
-        window.clearTimeout(saveReminderTimeout);
-        saveReminderTimeout = null;
-      }
-      isSaveReminderScheduled = false;
-      hasShownSaveReminder = false;
-
-      const maybeScheduleSaveReminder = () => {
-        if (hasShownSaveReminder) {
-          return;
-        }
-
-        const content = panel.context.model.toJSON() as INotebookContent;
-        if (panel.context.model.readOnly) {
-          return;
-        }
-        if (isNotebookEmpty(content)) {
-          return;
-        }
-        if (isSaveReminderScheduled) {
-          return;
-        }
-
-        isSaveReminderScheduled = true;
-        saveReminderTimeout = startSaveReminder(saveReminderTimeout, () => {
-          hasShownSaveReminder = true;
-          isSaveReminderScheduled = false;
-        });
-      };
-
-      void panel.context.ready.then(() => {
-        maybeScheduleSaveReminder();
-        panel.context.model.contentChanged.connect(() => {
-          maybeScheduleSaveReminder();
-        });
-
-        panel.context.saveState.connect((_, state) => {
-          if (state === 'completed') {
-            if (saveReminderTimeout) {
-              window.clearTimeout(saveReminderTimeout);
-              saveReminderTimeout = null;
-            }
-            isSaveReminderScheduled = false;
-            hasShownSaveReminder = false;
-          }
-        });
-      });
-
-      panel.disposed.connect(() => {
-        if (saveReminderTimeout) {
-          window.clearTimeout(saveReminderTimeout);
-          saveReminderTimeout = null;
-        }
-      });
-    });
   }
 };
 

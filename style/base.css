@@ -573,3 +573,164 @@ jp-button[aria-label='Download'] svg {
     opacity: 0.45;
   }
 }
+
+/* GitHub file browser dialog */
+
+.je-GitHubBrowser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 460px;
+  padding: 4px 0;
+  font-family: var(--je-font-family);
+}
+
+.je-GitHubBrowser-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.je-GitHubBrowser-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: var(--je-font-family);
+  border: 1px solid var(--je-border-color);
+  border-radius: 4px;
+  outline: none;
+}
+
+.je-GitHubBrowser-input:focus {
+  border-color: var(--je-slate-blue);
+}
+
+.je-GitHubBrowser-browse-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--je-font-family);
+  background: var(--je-slate-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.je-GitHubBrowser-browse-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.je-GitHubBrowser-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.je-GitHubBrowser-recent-label {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.je-GitHubBrowser-recent-item {
+  cursor: pointer;
+  color: var(--je-slate-blue);
+  text-decoration: underline;
+}
+
+.je-GitHubBrowser-recent-item:hover {
+  opacity: 0.75;
+}
+
+.je-GitHubBrowser-breadcrumb {
+  font-size: 12px;
+  color: #666;
+  padding: 2px 0;
+}
+
+.je-GitHubBrowser-sep {
+  color: #aaa;
+}
+
+.je-GitHubBrowser-repo-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.je-GitHubBrowser-crumb {
+  cursor: pointer;
+  color: var(--je-slate-blue);
+  text-decoration: underline;
+}
+
+.je-GitHubBrowser-crumb:hover {
+  opacity: 0.75;
+}
+
+.je-GitHubBrowser-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--je-border-color);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.je-GitHubBrowser-item {
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.je-GitHubBrowser-item:last-child {
+  border-bottom: none;
+}
+
+.je-GitHubBrowser-item:hover {
+  background: #f5f3ff;
+}
+
+.je-GitHubBrowser-item--selected {
+  background: #ede9fe;
+  font-weight: 500;
+}
+
+.je-GitHubBrowser-item--dir {
+  color: var(--je-slate-blue);
+  font-weight: 500;
+}
+
+.je-GitHubBrowser-item--file {
+  color: #333;
+}
+
+.je-GitHubBrowser-message {
+  padding: 16px 12px;
+  color: #888;
+  text-align: center;
+  font-size: 13px;
+}
+
+.je-GitHubBrowser-error {
+  padding: 12px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Checkmark for the currently-open notebook in the File menu recents list */
+.lm-Menu-item.lm-mod-toggled > .lm-Menu-itemIcon {
+  position: relative;
+}
+
+.lm-Menu-item.lm-mod-toggled > .lm-Menu-itemIcon::after {
+  content: '✓';
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--je-slate-blue, #5c8ede);
+  text-align: center;
+  line-height: 1;
+}

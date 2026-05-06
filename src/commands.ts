@@ -6,4 +6,8 @@ export namespace Commands {
   export const saveNotebookCommand = 'jupytereverywhere:save-notebook';
   export const switchKernelCommand = 'jupytereverywhere:switch-kernel';
   export const restartMemoryAndRunAllCommand = 'jupytereverywhere:restart-and-run-all';
+  export const openFromGitHub = 'jupytereverywhere:open-from-github';
+  export const copyShareLink = 'jupytereverywhere:copy-share-link';
+  export const saveToFile = 'jupytereverywhere:save-to-file';
+  export const closeNotebook = 'jupytereverywhere:close-notebook';
 }
