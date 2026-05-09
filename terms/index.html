@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — CourseKata Playground</title>
+  <style>
+    :root {
+      --ck-teal: #00CADB;
+      --ck-pink: #FE5B7D;
+      --ck-amber: #f59e0b;
+      --ck-purple: #7c3aed;
+      --ck-dark: #21005a;
+      --ck-text: #1a1a2e;
+      --ck-muted: #555;
+      --ck-border: #d0d0e0;
+      --ck-bg: #f8f9fc;
+      --ck-card: #ffffff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--ck-bg);
+      color: var(--ck-text);
+      line-height: 1.65;
+      padding: 2rem 1rem;
+      margin: 0;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    header {
+      border-bottom: 3px solid var(--ck-teal);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .wordmark { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+    .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--ck-teal); flex-shrink: 0; }
+
+    h1 { font-size: 1.6rem; font-weight: 700; color: var(--ck-dark); margin: 0; }
+    .subtitle { color: var(--ck-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+
+    .draft-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-left: 4px solid var(--ck-amber);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.92rem;
+    }
+    .draft-box strong { color: #b45309; }
+
+	.doc-meta {
+	  display: flex;
+	  flex-wrap: wrap;
+	  gap: 0.5rem 1rem;
+	  margin-top: 0.85rem;
+	  font-size: 0.85rem;
+	  color: var(--ck-muted);
+	}
+
+	.doc-meta span {
+	  background: var(--ck-card);
+	  border: 1px solid var(--ck-border);
+	  border-radius: 999px;
+	  padding: 0.25rem 0.65rem;
+	}
+
+	.doc-meta strong {
+	  color: var(--ck-dark);
+	}
+
+    main {
+      background: var(--ck-card);
+      border: 1px solid var(--ck-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    main h1 { display: none; }
+
+    main h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ck-dark);
+      margin: 2rem 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--ck-border);
+    }
+
+    main h2:first-of-type { margin-top: 0.5rem; }
+    main h3 { font-size: 0.98rem; color: var(--ck-dark); margin-top: 1.25rem; }
+
+    p { margin: 0.75rem 0; }
+    ul, ol { margin: 0.75rem 0 0.75rem 1.5rem; padding: 0; }
+    li { margin: 0.35rem 0; }
+    a { color: var(--ck-dark); text-decoration: underline; }
+    strong { color: var(--ck-dark); }
+
+    blockquote {
+      margin: 1rem 0;
+      padding: 0.75rem 1rem;
+      border-left: 4px solid var(--ck-teal);
+      background: #f0fbfd;
+      color: var(--ck-muted);
+    }
+
+    code {
+      background: #f4f4f8;
+      border: 1px solid var(--ck-border);
+      border-radius: 4px;
+      padding: 0.1rem 0.3rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.88em;
+    }
+
+    hr { border: 0; border-top: 1px solid var(--ck-border); margin: 1.5rem 0; }
+
+    main p:has(strong:first-child), main li:has(strong:first-child) {
+      /* Leaves bold labels readable without changing document semantics. */
+    }
+
+    .legal-review-note, p:has(strong em) {
+      background: #faf5ff;
+      border: 1px solid #ddd6fe;
+      border-left: 4px solid var(--ck-purple);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+    }
+    
+    .summary-box {
+  	  background: #f0fbfd;
+  	  border: 1px solid #b2ebf2;
+  	  border-left: 4px solid var(--ck-teal);
+  	  border-radius: 6px;
+  	  padding: 1rem 1.25rem;
+  	  margin-bottom: 1.5rem;
+  	  font-size: 0.92rem;
+	}
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--ck-border);
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--ck-muted);
+    }
+    footer a { color: var(--ck-dark); }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem 0.75rem; }
+      main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div class="wordmark">
+    <div class="dot"></div>
+    <h1>Terms of Service</h1>
+  </div>
+
+  <p class="subtitle">
+    CourseKata Playground terms for use of the browser-based coding environment.
+  </p>
+
+  <div class="doc-meta">
+    <span><strong>Effective Date:</strong> [TO BE DETERMINED]</span>
+    <span><strong>Last Updated:</strong> May 9, 2026</span>
+    <span><strong>Status:</strong> Draft for legal review</span>
+  </div>
+</header>
+
+<div class="summary-box">
+  <p><strong>Summary:</strong> This summary is provided for convenience only. The full terms below
+control.</p>
+<ul>
+<li>CourseKata Playground is a free, browser-based coding environment.
+It runs entirely in your browser; nothing is installed on your
+computer.</li>
+<li>Like many web applications, Playground stores notebooks and settings
+in your browser’s local storage. You can view and clear this data at any
+time through your browser’s settings. CourseKata cannot access data
+stored in your browser.</li>
+<li>We provide it “as-is.” We do not guarantee it will always work
+correctly or be available.</li>
+<li>We are not liable for damages arising from your use of the product.
+Our total liability to you is limited as described below.</li>
+<li>You own the code and content you create. We do not claim rights to
+it.</li>
+<li>Some features of the product incorporate open-source software. See
+our <a href="/licenses">Open Source Licenses</a> page for details.</li>
+</ul>
+</div>
+
+
+  <main>
+
+<h2 id="about-these-terms">1. About These Terms</h2>
+<p>These Terms of Service (“Terms”) govern your use of CourseKata
+Playground (“Playground,” “the Product,” or “the Service”), operated by
+CourseKata (“CourseKata,” “we,” “our,” or “us”). By accessing or using
+Playground, you agree to be bound by these Terms. If you do not agree,
+do not use the Product.</p>
+<p>If you are using Playground on behalf of an educational institution
+or other organization, you represent that you have authority to bind
+that organization to these Terms, and “you” refers to that
+organization.</p>
+<p>These Terms should be read alongside our <a href="/privacy">Privacy Policy</a>, which
+describes how we handle any information collected in connection with
+your use of the Product.</p>
+<hr />
+<h2 id="what-coursekata-playground-is">2. What CourseKata Playground
+Is</h2>
+<p>Playground is a browser-based interactive coding environment that
+allows users to write, run, and share code (including R and Python)
+directly in a web browser, without installing any software on their
+device.</p>
+<p><strong>Technical architecture — what the Product can and cannot
+do:</strong></p>
+<p>Playground runs entirely within your web browser using WebAssembly
+(WASM) technology. This means:</p>
+<ul>
+<li><p><strong>No installation.</strong> Nothing is installed on your
+computer, tablet, or device.</p></li>
+<li><p><strong>No file system access.</strong> Playground cannot read,
+write, modify, or delete files on your device’s file system unless you
+explicitly grant permission through your browser’s File System Access
+interface. Playground does not access your operating system, other
+applications, or documents stored outside the browser.</p></li>
+<li><p><strong>Browser storage.</strong> Like many web applications,
+Playground uses browser storage (specifically IndexedDB and the browser
+cache) to save your notebooks, settings, and application files between
+sessions. This storage accumulates over time with regular use and may
+become significant in size. It is sandboxed to your browser and this
+website — it cannot be read by other websites or applications, and it is
+fully isolated from your file system. You can view, manage, and clear
+this storage at any time through your browser’s settings (typically
+under Settings → Privacy → Site Data, or the equivalent in your
+browser). Your browser enforces limits on how much storage any single
+website may use and may prompt you if those limits are approached.
+CourseKata has no access to data stored in your browser and cannot
+recover it if you clear your browser storage.</p></li>
+<li><p><strong>No background processes.</strong> Playground does not run
+any processes on your device outside of your browser tab. Closing the
+tab ends all activity.</p></li>
+<li><p><strong>Browser sandbox.</strong> All code execution occurs
+within your browser’s security sandbox, which isolates Playground from
+your operating system and other applications.</p></li>
+<li><p><strong>Network access.</strong> Playground may make network
+requests consistent with normal browser behavior and the same-origin
+policy. It does not make unauthorized connections to external
+services.</p></li>
+</ul>
+<p>Because of this architecture, Playground’s ability to affect software
+or data outside your browser is extremely limited by design. Any claim
+that Playground caused damage to your device, operating system, or other
+software should be evaluated in light of these technical
+constraints.</p>
+<hr />
+<h2 id="eligibility-and-access">3. Eligibility and Access</h2>
+<p><strong>Age.</strong> Playground is intended for use by individuals
+13 years of age or older. If you are under 13, do not use the Product.
+If you are between 13 and 18 (or the age of majority in your
+jurisdiction), you may only use Playground with the consent and
+supervision of a parent or legal guardian.</p>
+<p><strong>Educational use.</strong> Playground is designed primarily
+for educational purposes. Nothing in these Terms prevents other lawful
+uses.</p>
+<p><strong>Account.</strong> Some features of Playground may require you
+to create an account or authenticate through an educational
+institution’s learning management system (LMS). Where account
+credentials are required, you are responsible for maintaining the
+confidentiality of those credentials.</p>
+<hr />
+<h2 id="acceptable-use">4. Acceptable Use</h2>
+<p>You agree to use Playground only for lawful purposes and in a manner
+consistent with these Terms. You agree not to:</p>
+<ol type="a">
+<li><p>Use Playground to create, store, or transmit any content that is
+unlawful, harmful, threatening, abusive, harassing, defamatory, or
+otherwise objectionable;</p></li>
+<li><p>Attempt to reverse engineer, decompile, or disassemble any
+proprietary component of the Product, except to the extent expressly
+permitted by applicable law or by the open-source licenses applicable to
+the relevant component;</p></li>
+<li><p>Use the Product to infringe any patent, trademark, trade secret,
+copyright, or other intellectual property right of any party;</p></li>
+<li><p>Attempt to probe, scan, or test the vulnerability of any system
+or network connected to the Product, or attempt to circumvent any
+security or authentication mechanism;</p></li>
+<li><p>Use the Product in any manner that could damage, disable,
+overburden, or impair the Product or its infrastructure, or interfere
+with any other party’s use and enjoyment of the Product;</p></li>
+<li><p>Use automated scripts, bots, or other means to access the Product
+in a manner that exceeds reasonable personal use.</p></li>
+</ol>
+<p>CourseKata reserves the right to suspend or terminate access for
+users who violate these Terms.</p>
+<hr />
+<h2 id="intellectual-property">5. Intellectual Property</h2>
+<p><strong>CourseKata’s rights.</strong> Playground, including its
+design, user interface, branding, and proprietary features, is owned by
+CourseKata and its licensors. These Terms do not grant you any right,
+title, or interest in the Product beyond the limited license to use it
+as described here. “CourseKata Playground,” “CourseKata,” and associated
+logos are trademarks of CourseKata. Nothing in these Terms grants you
+any right to use them.</p>
+<p><strong>Open-source components.</strong> Playground incorporates
+open-source software components. Your rights with respect to those
+components are governed by their respective open-source licenses, not by
+these Terms. A complete list of open-source components and their license
+terms is available at <a href="/licenses">Open Source Licenses</a>. In the event of
+any conflict between these Terms and an applicable open-source license,
+the open-source license controls with respect to that component.</p>
+<p><strong>Your content.</strong> You retain all rights to code,
+notebooks, data, and other content that you create using Playground
+(“Your Content”). CourseKata does not claim ownership of Your Content.
+To the extent that CourseKata has access to Your Content in connection
+with providing the Service (for example, if notebook sharing or cloud
+save features are offered), you grant CourseKata a limited,
+non-exclusive license to store and transmit Your Content solely as
+necessary to provide those features. CourseKata will not use Your
+Content for any other purpose without your consent.</p>
+<p><strong>Feedback.</strong> If you provide feedback, suggestions, or
+ideas about Playground, you grant CourseKata the right to use that
+feedback without restriction or compensation to you.</p>
+<hr />
+<h2 id="disclaimer-of-warranties">6. Disclaimer of Warranties</h2>
+<p><strong>READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL
+RIGHTS.</strong></p>
+<p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, PLAYGROUND IS
+PROVIDED “AS IS” AND “AS AVAILABLE,” WITHOUT WARRANTY OF ANY KIND.
+COURSEKATA AND ITS LICENSORS, OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS
+EXPRESSLY DISCLAIM ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY,
+OR OTHERWISE, INCLUDING WITHOUT LIMITATION:</p>
+<ol type="a">
+<li><p>ANY IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, TITLE, OR NON-INFRINGEMENT;</p></li>
+<li><p>ANY WARRANTY THAT PLAYGROUND WILL MEET YOUR REQUIREMENTS, OPERATE
+WITHOUT INTERRUPTION, BE ERROR-FREE, OR THAT DEFECTS WILL BE
+CORRECTED;</p></li>
+<li><p>ANY WARRANTY REGARDING THE ACCURACY, RELIABILITY, OR COMPLETENESS
+OF ANY OUTPUT GENERATED BY PLAYGROUND OR ANY THIRD-PARTY KERNEL OR
+LIBRARY RUNNING WITHIN IT;</p></li>
+<li><p>ANY WARRANTY THAT PLAYGROUND IS FREE OF VIRUSES OR OTHER HARMFUL
+COMPONENTS.</p></li>
+</ol>
+<p>SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OF IMPLIED WARRANTIES,
+SO SOME OF THE ABOVE EXCLUSIONS MAY NOT APPLY TO YOU.</p>
+<p>CourseKata does not warrant or represent that Playground is
+compatible with any particular software, hardware, operating system, or
+browser configuration, or that it will function correctly in your
+specific environment.</p>
+<p>CourseKata specifically disclaims any warranty regarding the
+persistence or integrity of data stored in your browser. Browser storage
+may be cleared by your browser automatically (for example, when storage
+quotas are exceeded or when you clear browsing data), and CourseKata is
+not responsible for any loss of notebooks, settings, or other data
+resulting from such clearance.</p>
+<hr />
+<h2 id="limitation-of-liability">7. Limitation of Liability</h2>
+<p><strong>READ THIS SECTION CAREFULLY. IT LIMITS COURSEKATA’S LIABILITY
+TO YOU.</strong></p>
+<p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:</p>
+<ol type="a">
+<li><p><strong>Exclusion of consequential damages.</strong> IN NO EVENT
+WILL COURSEKATA OR ITS LICENSORS, OFFICERS, DIRECTORS, EMPLOYEES, OR
+AGENTS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+PUNITIVE, OR CONSEQUENTIAL DAMAGES OF ANY KIND, INCLUDING BUT NOT
+LIMITED TO LOSS OF PROFITS, LOSS OF DATA, LOSS OF GOODWILL, BUSINESS
+INTERRUPTION, OR COST OF SUBSTITUTE SERVICES, ARISING OUT OF OR IN
+CONNECTION WITH YOUR USE OF OR INABILITY TO USE PLAYGROUND, EVEN IF
+COURSEKATA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p></li>
+<li><p><strong>Cap on direct damages.</strong> TO THE EXTENT DIRECT
+DAMAGES ARE NOT OTHERWISE EXCLUDED, COURSEKATA’S TOTAL CUMULATIVE
+LIABILITY TO YOU FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THESE
+TERMS OR YOUR USE OF PLAYGROUND WILL NOT EXCEED THE GREATER OF (i) THE
+TOTAL AMOUNT YOU PAID TO COURSEKATA FOR ACCESS TO PLAYGROUND IN THE
+TWELVE MONTHS PRECEDING THE CLAIM, OR</p>
+<ol start="2" type="i">
+<li>ONE HUNDRED U.S. DOLLARS ($100).</li>
+</ol></li>
+<li><p><strong>Essential basis.</strong> THE PARTIES ACKNOWLEDGE THAT
+THE LIMITATIONS OF LIABILITY IN THIS SECTION REFLECT A REASONABLE
+ALLOCATION OF RISK AND ARE AN ESSENTIAL ELEMENT OF THE BASIS OF THE
+BARGAIN BETWEEN THE PARTIES. COURSEKATA WOULD NOT PROVIDE PLAYGROUND ON
+THESE TERMS WITHOUT THESE LIMITATIONS.</p></li>
+</ol>
+<p>SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF
+CERTAIN DAMAGES, SO SOME OF THE ABOVE LIMITATIONS MAY NOT APPLY TO YOU.
+IN SUCH JURISDICTIONS, COURSEKATA’S LIABILITY IS LIMITED TO THE GREATEST
+EXTENT PERMITTED BY LAW.</p>
+<p><strong>Device and software claims specifically.</strong> In light of
+the technical architecture described in Section 2, CourseKata
+specifically disclaims any liability for damage to your device,
+operating system, file system, or any other software or data on your
+device arising from your use of Playground. Playground’s browser-based,
+sandboxed architecture is designed to make such damage impossible
+through normal use.</p>
+<hr />
+<h2 id="indemnification">8. Indemnification</h2>
+<p>You agree to indemnify, defend, and hold harmless CourseKata and its
+licensors, officers, directors, employees, and agents from and against
+any claims, liabilities, damages, losses, costs, and expenses (including
+reasonable attorneys’ fees) arising out of or relating to: (a) your use
+of Playground in violation of these Terms; (b) Your Content; or (c) your
+violation of any applicable law or the rights of any third party.</p>
+<hr />
+<h2 id="third-party-software-and-services">9. Third-Party Software and
+Services</h2>
+<p>Playground incorporates third-party open-source software. CourseKata
+makes no representations or warranties regarding such third-party
+components, and CourseKata’s disclaimers and liability limitations in
+Sections 6 and 7 apply fully to any claims arising from third-party
+components.</p>
+<p>Playground may include links to or integrations with third-party
+websites or services. CourseKata does not control those third parties
+and is not responsible for their content, privacy practices, or terms.
+Your use of third-party services is at your own risk and subject to
+their own terms.</p>
+<hr />
+<h2 id="privacy">10. Privacy</h2>
+<p>CourseKata’s collection and use of information in connection with
+Playground is described in our <a href="/privacy">Privacy Policy</a>. By using
+Playground, you consent to data practices described in the Privacy
+Policy.</p>
+<hr />
+<h2 id="changes-to-the-product-and-terms">11. Changes to the Product and
+Terms</h2>
+<p><strong>Changes to Playground.</strong> CourseKata reserves the right
+to modify, suspend, or discontinue Playground or any feature of
+Playground at any time, with or without notice, and without liability to
+you.</p>
+<p><strong>Changes to Terms.</strong> CourseKata may update these Terms
+from time to time. If we make material changes, we will provide notice
+by updating the “Last Updated” date at the top of this page and, where
+appropriate, by providing additional notice (such as a prominent notice
+in the Product or an email to registered users). Your continued use of
+Playground after the effective date of updated Terms constitutes your
+acceptance of those Terms. If you do not agree to the updated Terms,
+stop using the Product.</p>
+<hr />
+<h2 id="termination">12. Termination</h2>
+<p>These Terms remain in effect while you use Playground. CourseKata may
+suspend or terminate your access to Playground at any time, for any
+reason, including if CourseKata believes you have violated these Terms.
+You may stop using Playground at any time.</p>
+<p>Upon termination, Sections 5 (Intellectual Property), 6 (Disclaimer
+of Warranties), 7 (Limitation of Liability), 8 (Indemnification), 13
+(Governing Law), and 14 (Dispute Resolution) survive.</p>
+<hr />
+<h2 id="governing-law">13. Governing Law</h2>
+<p>
+These Terms are governed by and construed in accordance with the laws of the
+State of California, without regard to its conflict of law principles. The
+United Nations Convention on Contracts for the International Sale of Goods
+does not apply.
+</p>
+
+<p>
+If you access Playground from outside the United States, you do so on your own
+initiative and are responsible for compliance with local laws. Nothing in these
+Terms limits any rights you may have under applicable consumer protection laws
+that cannot be waived by contract.
+</p>
+<hr />
+<h2 id="dispute-resolution">14. Dispute Resolution</h2>
+<p><strong>Informal resolution.</strong> Before initiating any formal
+dispute, you agree to contact CourseKata at <a href="mailto:info@coursekata.org">info@coursekata.org</a> and
+attempt to resolve the dispute informally. CourseKata will attempt to
+resolve the dispute within 30 days.</p>
+<hr />
+<h2 id="miscellaneous">15. Miscellaneous</h2>
+<p><strong>Entire agreement.</strong> These Terms, together with the
+Privacy Policy and any other policies or agreements expressly
+incorporated by reference, constitute the entire agreement between you
+and CourseKata regarding Playground and supersede all prior agreements
+and understandings.</p>
+<p><strong>Severability.</strong> If any provision of these Terms is
+found to be unenforceable, that provision will be modified to the
+minimum extent necessary to make it enforceable, and the remaining
+provisions will continue in full force and effect.</p>
+<p><strong>Waiver.</strong> CourseKata’s failure to enforce any
+provision of these Terms is not a waiver of its right to do so
+later.</p>
+<p><strong>Assignment.</strong> You may not assign or transfer your
+rights or obligations under these Terms without CourseKata’s prior
+written consent. CourseKata may assign these Terms in connection with a
+merger, acquisition, or sale of all or substantially all of its assets,
+with notice to you.</p>
+<p><strong>No third-party beneficiaries.</strong> These Terms do not
+create any third-party beneficiary rights.</p>
+<p><strong>Contact.</strong> Questions about these Terms may be directed
+to:<br />
+CourseKata<br />
+[ADDRESS]<br />
+<a href="mailto:info@coursekata.org">info@coursekata.org</a></p>
+<hr />
+<h2 id="appendix-open-source-license-notice">Appendix: Open-Source
+License Notice</h2>
+<p>Certain components of Playground are licensed under open-source
+licenses, including the BSD 3-Clause License, the GNU General Public
+License v2 (GPL-2.0), the GNU General Public License v3 (GPL-3.0), the
+Mozilla Public License 2.0 (MPL-2.0), and the MIT License. Nothing in
+these Terms restricts rights granted to you by those licenses with
+respect to the applicable open-source components. In particular:</p>
+<ul>
+<li>These Terms do not restrict your right to obtain the source code of
+GPL-licensed components as provided under GPL-3.0 and GPL-2.0.
+GPL-licensed components include: <strong>xeus-r</strong> (GPL-3.0),
+<strong>ggplot2</strong> (GPL-2.0), and <strong>neuralnet</strong>
+(GPL-2.0). These components are compiled to WebAssembly and delivered to
+your browser as part of the R kernel. Source code is available at their
+respective GitHub repositories (listed at <a href="/licenses">Open Source Licenses</a>)).</li>
+<li>These Terms do not restrict your right to obtain the source code of
+MPL-2.0-licensed components. The <strong>Pyodide</strong> Python runtime
+(MPL-2.0) is compiled to WebAssembly and delivered to your browser as
+the Python kernel. Source code is available at
+<a href="https://github.com/pyodide/pyodide">https://github.com/pyodide/pyodide</a>.</li>
+<li>These Terms do not restrict your right to copy, modify, or
+redistribute open-source components under the terms of their respective
+licenses.</li>
+<li>Your rights under open-source licenses are independent of and not
+conditioned on your compliance with these Terms.</li>
+</ul>
+<p>A complete list of open-source components and their license terms is
+available at <a href="/licenses">Open Source Licenses</a>.</p>
+  </main>
+
+<footer>
+  <p>
+    © 2026 <a href="https://coursekata.org" target="_blank" rel="noopener">CourseKata</a>. All rights reserved. |
+    <a href="/privacy">Privacy Policy</a> |
+    <a href="/terms">Terms of Service</a> |
+    <a href="/licenses">Licenses</a>
+  </p>
+</footer>
+
+</div>
+</body>
+</html>
