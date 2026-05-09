@@ -11,27 +11,27 @@ by each project's license.
 
 ## Contents
 
-| # | Component | License | Delivered to users? |
-|---|---|---|---|
-| 1 | Project Jupyter (JupyterLab / JupyterLite) | BSD 3-Clause | Yes — JavaScript |
-| 2 | JupyterEverywhere | BSD 3-Clause | Yes — JavaScript |
-| 3 | xeus (Jupyter Kernel Protocol Library) | BSD 3-Clause | Yes — WASM |
-| 4 | **xeus-r** | **GPL-3.0** | **Yes — WASM** |
-| 5 | R packages bundled in xeus-r kernel (GPL-2.0) | GPL-2.0 | Yes — WASM |
-| 6 | R packages bundled in xeus-r kernel (MIT) | MIT | Yes — WASM |
-| 7 | Lumino | BSD 3-Clause | Yes — JavaScript |
-| 8 | Pyodide (Python kernel) | MPL 2.0 | Yes — WASM |
-| 9 | jupyterlite-pyodide-kernel | BSD 3-Clause | Yes — JavaScript |
-| 10 | jupyterlite-xeus | BSD 3-Clause | Yes — JavaScript |
-| 11 | React | MIT | Yes — JavaScript |
-| 12 | jsPDF | MIT | Yes — JavaScript |
+| #   | Component                                     | License      | Delivered to users? |
+| --- | --------------------------------------------- | ------------ | ------------------- |
+| 1   | Project Jupyter (JupyterLab / JupyterLite)    | BSD 3-Clause | Yes — JavaScript    |
+| 2   | JupyterEverywhere                             | BSD 3-Clause | Yes — JavaScript    |
+| 3   | xeus (Jupyter Kernel Protocol Library)        | BSD 3-Clause | Yes — WASM          |
+| 4   | **xeus-r**                                    | **GPL-3.0**  | **Yes — WASM**      |
+| 5   | R packages bundled in xeus-r kernel (GPL-2.0) | GPL-2.0      | Yes — WASM          |
+| 6   | R packages bundled in xeus-r kernel (MIT)     | MIT          | Yes — WASM          |
+| 7   | Lumino                                        | BSD 3-Clause | Yes — JavaScript    |
+| 8   | Pyodide (Python kernel)                       | MPL 2.0      | Yes — WASM          |
+| 9   | jupyterlite-pyodide-kernel                    | BSD 3-Clause | Yes — JavaScript    |
+| 10  | jupyterlite-xeus                              | BSD 3-Clause | Yes — JavaScript    |
+| 11  | React                                         | MIT          | Yes — JavaScript    |
+| 12  | jsPDF                                         | MIT          | Yes — JavaScript    |
 
 ---
 
 ## 1. Project Jupyter (JupyterLab / JupyterLite)
 
 **Source:** https://github.com/jupyterlab/jupyterlab  
-           https://github.com/jupyterlite/jupyterlite  
+ https://github.com/jupyterlite/jupyterlite  
 **License:** BSD 3-Clause ("Modified BSD License")
 
 ```
@@ -262,16 +262,16 @@ The following R packages are bundled inside the xeus-r WebAssembly kernel
 environment and distributed to users' browsers. They are licensed under the
 MIT License.
 
-| Package | Purpose | Source |
-|---|---|---|
-| r-dplyr | Data manipulation | https://github.com/tidyverse/dplyr |
-| r-tidyr | Data tidying | https://github.com/tidyverse/tidyr |
-| r-readr | Data import | https://github.com/tidyverse/readr |
-| r-purrr | Functional programming | https://github.com/tidyverse/purrr |
-| r-tibble | Tidy data frames | https://github.com/tidyverse/tibble |
-| r-stringr | String manipulation | https://github.com/tidyverse/stringr |
-| r-forcats | Factor handling | https://github.com/tidyverse/forcats |
-| r-coursekata | CourseKata R package | https://github.com/coursekata |
+| Package      | Purpose                | Source                               |
+| ------------ | ---------------------- | ------------------------------------ |
+| r-dplyr      | Data manipulation      | https://github.com/tidyverse/dplyr   |
+| r-tidyr      | Data tidying           | https://github.com/tidyverse/tidyr   |
+| r-readr      | Data import            | https://github.com/tidyverse/readr   |
+| r-purrr      | Functional programming | https://github.com/tidyverse/purrr   |
+| r-tibble     | Tidy data frames       | https://github.com/tidyverse/tibble  |
+| r-stringr    | String manipulation    | https://github.com/tidyverse/stringr |
+| r-forcats    | Factor handling        | https://github.com/tidyverse/forcats |
+| r-coursekata | CourseKata R package   | https://github.com/coursekata        |
 
 Copyright for each package is held by its respective authors and contributors
 (primarily the tidyverse authors: Hadley Wickham and contributors). See each
@@ -501,4 +501,4 @@ SOFTWARE.
 
 ---
 
-*Last updated: 2026*
+_Last updated: 2026_
