@@ -226,11 +226,13 @@ They are licensed under the GNU General Public License v2 (GPL-2.0).
 
 **ggplot2** — A grammar of graphics for R  
 Source: https://github.com/tidyverse/ggplot2  
+Version: 3.4.2  
 Copyright: Copyright (c) Hadley Wickham, Winston Chang, and contributors  
 License: GPL-2.0
 
 **neuralnet** — Training of neural networks  
 Source: https://github.com/bips-hb/neuralnet  
+Version: 1.44.2  
 Copyright: Copyright (c) Stefan Fritsch, Frauke Guenther, Marc Suling, and contributors  
 License: GPL-2.0
 
