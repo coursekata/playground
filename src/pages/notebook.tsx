@@ -238,6 +238,17 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           display_name: KERNEL_DISPLAY_NAMES[kernelName] ?? kernelName
         };
 
+        // Mark all code cells as trusted so their HTML outputs render.
+        // With memoryStorageDriver, trust is never persisted across reloads, so notebooks
+        // loaded from external sources are always untrusted — causing text/html outputs
+        // (e.g. images displayed via display(HTML(...)) or IRdisplay) to silently fall back
+        // to plain text. Course content is curated, so auto-trusting is safe here.
+        for (const cell of content.cells) {
+          if (cell.cell_type === 'code') {
+            cell.metadata = { ...cell.metadata, trusted: true };
+          }
+        }
+
         // storedName is the actual filename from the user's disk (e.g. "jim_test.ipynb").
         // Without it, local files get stored as Uploaded_<id>.ipynb in the virtual FS,
         // which breaks the recents lookup (handle.name vs VFS path mismatch).
