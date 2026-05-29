@@ -100,14 +100,64 @@
   top: 5px;
 }
 
+.jp-InputArea-prompt {
+  overflow: visible !important;
+}
+
 .jp-InputArea-prompt-run.je-cell-run-button {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%) scale(1.15) !important;
   opacity: 0 !important;
+  pointer-events: none;
   transition: opacity 0.15s ease-in-out;
   color: #fe5b7d !important;
+  overflow: visible;
+}
+
+.je-cell-run-button jp-button {
+  --focus-stroke-outer: transparent !important;
+  --focus-stroke-inner: transparent !important;
+}
+
+.je-cell-run-button jp-button::part(control),
+.je-cell-run-button jp-button:focus::part(control),
+.je-cell-run-button jp-button:focus-visible::part(control) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.je-cell-run-button:focus,
+.je-cell-run-button:focus-visible {
+  outline: none !important;
+}
+
+.jp-InputArea-prompt-run.je-cell-run-button.je-cell-running::after {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  top: 50%;
+  left: 50%;
+  margin-top: -13px;
+  margin-left: -13px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  border-top-color: #fe5b7d;
+  animation: je-run-spin 0.7s linear infinite;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+@keyframes je-run-spin {
+  to { transform: rotate(360deg); }
+}
+
+.jp-OutputArea-output pre {
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .jp-RawCell .jp-InputArea-prompt-run.je-cell-run-button {
@@ -116,6 +166,7 @@
 
 .jp-Cell.jp-mod-active:not(.jp-RawCell) .jp-InputArea-prompt-run.je-cell-run-button {
   opacity: 1 !important;
+  pointer-events: auto;
 }
 
 .jp-InputArea-prompt-run.je-cell-run-button circle {
