@@ -160,6 +160,10 @@
   white-space: pre;
 }
 
+.jp-Launcher {
+  display: none !important;
+}
+
 .jp-RawCell .jp-InputArea-prompt-run.je-cell-run-button {
   display: none;
 }
@@ -402,6 +406,8 @@ jp-button[aria-label='Download'] svg {
 .jp-NotebookPanel-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .ck-logo-button {

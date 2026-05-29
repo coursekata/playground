@@ -18,6 +18,7 @@ export class OpenDropdownButton extends ToolbarButton {
     isSaveChangesEnabled: () => boolean,
     saveAs: () => void,
     closeNotebook: () => void,
+    clearStorage: () => void,
     getRecentItems: () => Array<{ label: string; open: () => void; isCurrent: () => boolean }>
   ) {
     const commandOpenFile = 'jupytereverywhere:file-open-from-file';
@@ -31,6 +32,7 @@ export class OpenDropdownButton extends ToolbarButton {
     const commandSaveChanges = 'jupytereverywhere:file-save-changes';
     const commandSaveAs = 'jupytereverywhere:file-save-as';
     const commandCloseNotebook = 'jupytereverywhere:file-close-notebook';
+    const commandClearStorage = 'jupytereverywhere:file-clear-storage';
 
     if (!commands.hasCommand(commandOpenFile)) {
       commands.addCommand(commandOpenFile, {
@@ -123,9 +125,18 @@ export class OpenDropdownButton extends ToolbarButton {
       });
     }
 
+    if (!commands.hasCommand(commandClearStorage)) {
+      commands.addCommand(commandClearStorage, {
+        label: 'Clear storage',
+        execute: () => {
+          clearStorage();
+        }
+      });
+    }
+
     if (!commands.hasCommand(commandCopyShareLink)) {
       commands.addCommand(commandCopyShareLink, {
-        label: 'Copy share link to GitHub version',
+        label: 'Copy link to GitHub source',
         isEnabled: () => isCopyShareLinkEnabled(),
         execute: () => {
           copyShareLink();
@@ -179,6 +190,8 @@ export class OpenDropdownButton extends ToolbarButton {
         menu.addItem({ command: commandCopyShareLink });
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandCloseNotebook });
+        menu.addItem({ type: 'separator' });
+        menu.addItem({ command: commandClearStorage });
 
         const anchor = this.node.getBoundingClientRect();
         menu.open(anchor.left, anchor.bottom);

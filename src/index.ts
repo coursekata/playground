@@ -11,7 +11,7 @@ import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
 import { notebookPlugin } from './pages/notebook';
 import { getCurrentFileHandle, saveToHandle } from './filesystem';
-import { generateDefaultNotebookName } from './notebook-utils';
+import { generateDefaultNotebookName, showSavedToast } from './notebook-utils';
 
 import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
 import { singleDocumentMode } from './single-mode';
@@ -187,7 +187,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           try {
             await saveToHandle(fileHandle, text);
             await panel.context.save();
-            Notification.success('Saved.', { autoClose: 2000 });
+            showSavedToast();
           } catch (err) {
             console.error('Failed to save to file handle:', err);
             Notification.warning('Could not save to file.', { autoClose: 4000 });

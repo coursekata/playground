@@ -10,4 +10,5 @@ export namespace Commands {
   export const copyShareLink = 'jupytereverywhere:copy-share-link';
   export const saveToFile = 'jupytereverywhere:save-to-file';
   export const closeNotebook = 'jupytereverywhere:close-notebook';
+  export const clearStorage = 'jupytereverywhere:clear-storage';
 }

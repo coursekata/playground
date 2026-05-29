@@ -35,6 +35,7 @@ import {
   retrieveRecentHandle
 } from '../filesystem';
 import { RecentNotebook, addRecentNotebook, getRecentNotebooks, removeRecentNotebook } from '../recents';
+import { showSavedToast } from '../notebook-utils';
 
 function mapLanguageToKernel(content: INotebookContent): string {
   const rawLang =
@@ -170,6 +171,13 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
 
 
     let notebookSourceUrl: string | null = null;
+
+    window.addEventListener('beforeunload', (e) => {
+      if (tracker.currentWidget?.context.model.dirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
 
     const fsaSupported = isFileSystemAccessSupported();
     if (!fsaSupported && !sessionStorage.getItem('ck-fsa-notice')) {
@@ -707,7 +715,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           await storeRecentHandle(recentKey, handle);
           addRecentNotebook({ label: handle.name, type: 'file', handleKey: recentKey });
           await panel.context.save();
-          Notification.success('Saved.', { autoClose: 2000 });
+          showSavedToast();
         } catch (err) {
           console.error('Failed to save to file:', err);
           Notification.warning('Could not save to file.', { autoClose: 4000 });
@@ -830,6 +838,61 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
+    commands.addCommand(Commands.clearStorage, {
+      label: 'Clear storage',
+      execute: async () => {
+        const dirtyPaths: string[] = [];
+        tracker.forEach(w => {
+          if (w.context.model.dirty) dirtyPaths.push(w.context.path);
+        });
+
+        const body = dirtyPaths.length > 0
+          ? `This will close all notebooks and delete all stored data from your browser. The following notebooks have unsaved changes that will be lost: "${dirtyPaths.join('", "')}".`
+          : 'This will close all notebooks and delete all stored data from your browser. This cannot be undone.';
+
+        const result = await showDialog({
+          title: 'Clear storage',
+          body,
+          buttons: [
+            Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
+            Dialog.okButton({ label: 'Clear storage', className: 'ck-btn' })
+          ]
+        });
+        if (!result.button.accept) return;
+
+        // Clear localStorage (notebook content + recents)
+        const lsKeys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('uploaded-notebook') || k === 'jupytereverywhere:recent-notebooks')) {
+            lsKeys.push(k);
+          }
+        }
+        lsKeys.forEach(k => localStorage.removeItem(k));
+
+        // Clear sessionStorage (VFS caches + download history)
+        const ssKeys: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && (k.startsWith('vfs-cache:') || k.startsWith('ck-last-downloaded:') || k === 'ck-fsa-notice')) {
+            ssKeys.push(k);
+          }
+        }
+        ssKeys.forEach(k => sessionStorage.removeItem(k));
+
+        // Clear IndexedDB (file handles)
+        indexedDB.deleteDatabase('jupytereverywhere-fs');
+        setCurrentFileHandle(null);
+
+        _ckIntentionalNav = true;
+        tracker.forEach(w => { w.context.model.dirty = false; });
+        const url = new URL(window.location.href);
+        url.search = '';
+        url.hash = '';
+        window.location.href = url.toString();
+      }
+    });
+
     commands.addCommand(Commands.openFromGitHub, {
       label: 'Open from GitHub',
       execute: async () => {
@@ -860,8 +923,8 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     });
 
     commands.addCommand(Commands.copyShareLink, {
-      label: 'Copy share link to GitHub version',
-      isEnabled: () => notebookSourceUrl !== null,
+      label: 'Copy link to GitHub source',
+      isEnabled: () => notebookSourceUrl !== null && !tracker.currentWidget?.context.model.dirty,
       execute: () => {
         if (!notebookSourceUrl) {
           return;
@@ -984,16 +1047,19 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           () => {
             void commands.execute(Commands.copyShareLink);
           },
-          () => notebookSourceUrl !== null,
+          () => notebookSourceUrl !== null && !tracker.currentWidget?.context.model.dirty,
           () => {
             void commands.execute(Commands.saveNotebookCommand);
           },
-          () => !!getCurrentFileHandle() && !!tracker.currentWidget?.context.model.dirty,
+          () => !!tracker.currentWidget?.context.model.dirty,
           () => {
             void commands.execute(Commands.saveToFile);
           },
           () => {
             void commands.execute(Commands.closeNotebook);
+          },
+          () => {
+            void commands.execute(Commands.clearStorage);
           },
           () =>
             getRecentNotebooks().map(nb => ({
