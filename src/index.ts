@@ -1,5 +1,5 @@
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
-import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
+import { INotebookTracker } from '@jupyterlab/notebook';
 import { Dialog, showDialog, Notification } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { INotebookContent } from '@jupyterlab/nbformat';
@@ -11,7 +11,7 @@ import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
 import { notebookPlugin } from './pages/notebook';
 import { getCurrentFileHandle, saveToHandle } from './filesystem';
-import { generateDefaultNotebookName, isNotebookEmpty } from './notebook-utils';
+import { generateDefaultNotebookName } from './notebook-utils';
 
 import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
 import { singleDocumentMode } from './single-mode';
