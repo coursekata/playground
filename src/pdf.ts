@@ -93,6 +93,37 @@ export async function exportNotebookAsPDF(
     }
   });
 
+  // Copy image pixel data from the live element to the clone. Off-screen imgs
+  // may have lazy loading disabled or may not be re-fetchable from the clone's
+  // detached position, so we snapshot each img into a data URL directly.
+  const srcImgs = Array.from(sourceEl.querySelectorAll('img'));
+  const dstImgs = Array.from(clone.querySelectorAll('img'));
+  srcImgs.forEach((srcImg, i) => {
+    const dstImg = dstImgs[i];
+    if (!dstImg) return;
+    dstImg.loading = 'eager';
+    if (srcImg.complete && srcImg.naturalWidth > 0) {
+      try {
+        const tmp = document.createElement('canvas');
+        tmp.width = srcImg.naturalWidth;
+        tmp.height = srcImg.naturalHeight;
+        tmp.getContext('2d')?.drawImage(srcImg, 0, 0);
+        dstImg.src = tmp.toDataURL('image/png');
+      } catch {
+        // Cross-origin image — leave src as-is for html2canvas to handle
+      }
+    }
+  });
+
+  // Wait for any images that still need to load before capturing.
+  await Promise.all(
+    Array.from(clone.querySelectorAll('img')).map(img =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>(resolve => { img.onload = img.onerror = () => resolve(); })
+    )
+  );
+
   // Collect each cell's top y-position (pixels from container top) before
   // we remove the element from the DOM.
   const containerTop = offscreen.getBoundingClientRect().top;
