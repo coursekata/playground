@@ -54,9 +54,8 @@ export async function exportNotebookAsPDF(
 
   const sourceEl = notebook.content.node;
 
-  // Clone the notebook into an off-screen container with no overflow constraints.
-  // We can't capture sourceEl directly because it is a fixed-height scroll container —
-  // html2canvas only captures the visible viewport, not the scrolled content.
+  // Clone into an off-screen container with no overflow/height constraints so
+  // html2canvas captures the full content, not just the visible viewport.
   const offscreen = document.createElement('div');
   offscreen.style.cssText = [
     'position:absolute',
@@ -78,8 +77,8 @@ export async function exportNotebookAsPDF(
   offscreen.appendChild(clone);
   document.body.appendChild(offscreen);
 
-  // Copy canvas pixel data from the live element to the clone so that
-  // rendered plots (matplotlib, etc.) appear in the PDF.
+  // Copy canvas pixel data from the live element to the clone so rendered
+  // plots appear in the PDF.
   const srcCanvases = Array.from(sourceEl.querySelectorAll('canvas'));
   const dstCanvases = Array.from(clone.querySelectorAll('canvas'));
   srcCanvases.forEach((src, i) => {
@@ -94,6 +93,13 @@ export async function exportNotebookAsPDF(
     }
   });
 
+  // Collect each cell's top y-position (pixels from container top) before
+  // we remove the element from the DOM.
+  const containerTop = offscreen.getBoundingClientRect().top;
+  const cellTopsPx = Array.from(clone.querySelectorAll('.jp-Cell')).map(
+    cell => cell.getBoundingClientRect().top - containerTop
+  );
+
   let canvas: HTMLCanvasElement;
   try {
     canvas = await html2canvas(offscreen, { scale: 1, useCORS: true });
@@ -103,19 +109,53 @@ export async function exportNotebookAsPDF(
 
   if (canvas.height === 0) return;
 
-  const imgData = canvas.toDataURL('image/jpeg', 0.92);
   const doc = new jsPDF({ orientation: 'portrait', format: 'a4', unit: 'mm' });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();   // 210 mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // 297 mm
 
-  // Total image height in mm once scaled to fit the page width
-  const totalHeightMm = (canvas.height / canvas.width) * pageWidth;
+  const mmPerPx = pageWidth / canvas.width;
+  const totalHeightMm = canvas.height * mmPerPx;
+  const cellTopsMm = cellTopsPx.map(px => px * mmPerPx);
 
-  let yOffset = 0;
-  for (let page = 0; yOffset < totalHeightMm; page++) {
-    if (page > 0) doc.addPage();
-    doc.addImage(imgData, 'JPEG', 0, -yOffset, pageWidth, totalHeightMm);
-    yOffset += pageHeight;
+  // Build page break positions that land at cell boundaries.
+  // For each candidate break (cursor + pageHeight), find the latest cell
+  // start that falls at or before that point — the cell will then begin
+  // fresh on the next page rather than being split.
+  const breaks: number[] = [0];
+  let cursor = 0;
+  while (cursor < totalHeightMm) {
+    const rawEnd = cursor + pageHeight;
+    if (rawEnd >= totalHeightMm) break;
+
+    let bestBreak = rawEnd;
+    for (const cellTop of cellTopsMm) {
+      if (cellTop > cursor && cellTop <= rawEnd) {
+        bestBreak = cellTop; // keep updating — want the last one before rawEnd
+      }
+    }
+    breaks.push(bestBreak);
+    cursor = bestBreak;
+  }
+  breaks.push(totalHeightMm);
+
+  // Render each page as an independent canvas slice so that the break
+  // position can vary per page.
+  for (let i = 0; i < breaks.length - 1; i++) {
+    const startPx = Math.round(breaks[i] / mmPerPx);
+    const endPx = Math.round(breaks[i + 1] / mmPerPx);
+    const sliceHeightPx = endPx - startPx;
+    const sliceHeightMm = breaks[i + 1] - breaks[i];
+
+    const slice = document.createElement('canvas');
+    slice.width = canvas.width;
+    slice.height = sliceHeightPx;
+    slice.getContext('2d')!.drawImage(
+      canvas, 0, startPx, canvas.width, sliceHeightPx,
+      0, 0, canvas.width, sliceHeightPx
+    );
+
+    if (i > 0) doc.addPage();
+    doc.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageWidth, sliceHeightMm);
   }
 
   doc.save(outputName);
