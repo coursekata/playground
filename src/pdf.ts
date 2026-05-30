@@ -62,7 +62,8 @@ export function exportNotebookAsPDF(
           reject(err);
         }
       },
-      html2canvas: { scale: 0.25 }
+      html2canvas: { scale: 0.25 },
+      autoPaging: 'slice'
     });
   });
 }
