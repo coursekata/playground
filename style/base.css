@@ -791,3 +791,66 @@ jp-button[aria-label='Download'] svg {
   text-align: center;
   line-height: 1;
 }
+
+/* ── Print / PDF fallback ────────────────────────────────────────────────────
+   Applied when window.open() is blocked by a popup blocker and we fall back
+   to window.print() on the main window. The primary path (new print window)
+   has its own inline styles and doesn't use these rules.              ───── */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.75in;
+  }
+
+  /* Reset Lumino's absolute-position layout to natural document flow */
+  .jp-LabShell,
+  .jp-NotebookPanel,
+  .jp-Notebook {
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+
+  /* Hide chrome */
+  .jp-NotebookPanel-toolbar,
+  .jp-InputArea-prompt,
+  .je-cell-run-button {
+    display: none !important;
+  }
+
+  /* Cell pagination */
+  .jp-Cell {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* CodeMirror */
+  .cm-editor, .cm-scroller {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .cm-content { white-space: pre-wrap !important; }
+
+  /* Outputs */
+  .jp-OutputArea,
+  .jp-OutputArea-child,
+  .jp-OutputArea-output {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  pre { white-space: pre-wrap !important; overflow: visible !important; }
+  img, svg { max-width: 100% !important; }
+  table { break-inside: avoid; border-collapse: collapse; width: 100%; }
+}

@@ -38,183 +38,180 @@ import { INotebookModel, Notebook } from '@jupyterlab/notebook';
 import { PathExt } from '@jupyterlab/coreutils';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-
-export async function exportNotebookAsPDF(
+export function exportNotebookAsPDF(
   notebook: DocumentWidget<Notebook, INotebookModel>,
   fileName?: string
-): Promise<void> {
-  const defaultName = PathExt.basename(
-    notebook.context.path,
-    PathExt.extname(notebook.context.path)
-  );
-  const name = fileName ?? defaultName;
-  const outputName = name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`;
+): void {
+  const name =
+    fileName ??
+    PathExt.basename(
+      notebook.context.path,
+      PathExt.extname(notebook.context.path)
+    );
 
   const sourceEl = notebook.content.node;
 
-  // Clone into an off-screen container with no overflow/height constraints so
-  // html2canvas captures the full content, not just the visible viewport.
-  const offscreen = document.createElement('div');
-  offscreen.style.cssText = [
-    'position:absolute',
-    'left:-9999px',
-    'top:0',
-    `width:${sourceEl.scrollWidth}px`,
-    'overflow:visible',
-    'background:#fff',
-  ].join(';');
+  // Collect the page's stylesheet links so the print window gets the same
+  // JupyterLab styles (syntax highlighting, markdown, output areas, etc.).
+  const cssLinks = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')
+  )
+    .map(el => el.outerHTML)
+    .join('\n');
 
-  const clone = sourceEl.cloneNode(true) as HTMLElement;
-  clone.style.cssText = [
-    'position:static',
-    'height:auto',
-    'max-height:none',
-    'overflow:visible',
-    `width:${sourceEl.scrollWidth}px`,
-  ].join(';');
-  offscreen.appendChild(clone);
-  document.body.appendChild(offscreen);
+  // Open a new window and write a clean, print-ready version of the notebook.
+  // Using window.open() + window.print() instead of html2canvas has one key
+  // advantage: the browser's native renderer displays cross-origin images
+  // (S3, CDNs, etc.) freely. html2canvas requires those images to be
+  // re-fetched with CORS headers, which most asset servers don't send.
+  const win = window.open('', '_blank');
+  if (!win) {
+    // Popup blocked — fall back to printing the current window.
+    // @media print in base.css handles the layout for this case.
+    const prev = document.title;
+    document.title = name;
+    window.print();
+    document.title = prev;
+    return;
+  }
 
-  // Copy canvas pixel data from the live element to the clone so rendered
-  // plots appear in the PDF.
-  const srcCanvases = Array.from(sourceEl.querySelectorAll('canvas'));
-  const dstCanvases = Array.from(clone.querySelectorAll('canvas'));
-  srcCanvases.forEach((src, i) => {
-    const dst = dstCanvases[i];
-    if (!dst) return;
-    try {
-      dst.width = src.width;
-      dst.height = src.height;
-      dst.getContext('2d')?.drawImage(src, 0, 0);
-    } catch {
-      // Silently skip cross-origin canvases
+  win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${name}</title>
+  <base href="${location.origin}${location.pathname}">
+  ${cssLinks}
+  <style>
+    @page {
+      size: letter portrait;
+      margin: 0.75in;
     }
+
+    html, body {
+      background: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      padding: 0.25em 1.5em;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica,
+                   Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    /* ── Layout reset ───────────────────────────────────────────────────────
+       There is no Lumino shell here, so cells already flow naturally.
+       We just guard against any leftover position/size from JupyterLab CSS. */
+
+    .jp-Cell {
+      position: static !important;
+      display: block !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      margin: 0 0 1em 0;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+
+    /* Keep headings with the content that follows them */
+    h1, h2, h3, h4, h5, h6 {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+
+    /* ── Hide notebook chrome ───────────────────────────────────────────── */
+    .jp-InputArea-prompt,
+    .je-cell-run-button {
+      display: none !important;
+    }
+
+    /* Remove the left border / active-cell highlight */
+    .jp-Cell.jp-mod-active .jp-Cell-inputWrapper,
+    .jp-Cell .jp-Cell-inputWrapper {
+      border-left: none !important;
+    }
+
+    /* ── Markdown cells ─────────────────────────────────────────────────── */
+    .jp-MarkdownCell .jp-RenderedMarkdown {
+      padding: 0 !important;
+    }
+
+    /* ── Code editors (CodeMirror 6) ────────────────────────────────────── */
+    /* CodeMirror uses a fixed-height scroller; expand it for print. */
+    .cm-editor,
+    .cm-scroller {
+      height: auto !important;
+      overflow: visible !important;
+    }
+    .cm-content {
+      white-space: pre-wrap !important;
+      word-break: break-all;
+    }
+
+    /* Code cell container */
+    .jp-InputArea-editor {
+      overflow: visible !important;
+    }
+
+    /* ── Output areas ───────────────────────────────────────────────────── */
+    .jp-OutputArea,
+    .jp-OutputArea-child,
+    .jp-OutputArea-output {
+      overflow: visible !important;
+      max-height: none !important;
+      height: auto !important;
+    }
+
+    /* R / Python text output */
+    pre {
+      white-space: pre-wrap !important;
+      overflow: visible !important;
+      word-break: break-all;
+      margin: 0;
+    }
+
+    /* ── Images & figures ───────────────────────────────────────────────── */
+    img,
+    svg {
+      max-width: 100% !important;
+      height: auto !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Tables ─────────────────────────────────────────────────────────── */
+    table {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      text-align: left;
+    }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+${sourceEl.innerHTML}
+</body>
+</html>`);
+
+  win.document.close();
+
+  // Trigger print once all resources (images, fonts, CSS) are loaded.
+  win.addEventListener('load', () => {
+    win.focus();
+    win.print();
+    // Leave the window open — closing it immediately can race with the
+    // browser writing the PDF file, especially on slower machines.
   });
-
-  // Inline every img as a data URL so html2canvas can draw it without running
-  // into canvas-taint restrictions. Three-tier approach:
-  //   1. drawImage from the live element — instant, works for same-origin imgs.
-  //   2. fetch with CORS — works for cross-origin servers that have CORS
-  //      configured (e.g. S3 buckets serving public assets). cache:'no-cache'
-  //      avoids getting a cached non-CORS response that would taint the canvas.
-  //   3. Set crossOrigin="anonymous" and let html2canvas useCORS try last.
-  const srcImgs = Array.from(sourceEl.querySelectorAll('img'));
-  const dstImgs = Array.from(clone.querySelectorAll('img'));
-  await Promise.all(srcImgs.map(async (srcImg, i) => {
-    const dstImg = dstImgs[i];
-    if (!dstImg) return;
-    dstImg.loading = 'eager';
-
-    // Tier 1: same-origin / already-decoded
-    if (srcImg.complete && srcImg.naturalWidth > 0) {
-      try {
-        const tmp = document.createElement('canvas');
-        tmp.width = srcImg.naturalWidth;
-        tmp.height = srcImg.naturalHeight;
-        tmp.getContext('2d')?.drawImage(srcImg, 0, 0);
-        dstImg.src = tmp.toDataURL('image/png');
-        return;
-      } catch { /* cross-origin taint — fall through */ }
-    }
-
-    // Tier 2: fetch with CORS (handles cross-origin images like S3)
-    const src = srcImg.src || dstImg.src;
-    if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
-      try {
-        const resp = await fetch(src, { mode: 'cors', cache: 'no-cache' });
-        if (resp.ok) {
-          const blob = await resp.blob();
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          dstImg.src = dataUrl;
-          return;
-        }
-      } catch { /* no CORS headers on server — fall through */ }
-    }
-
-    // Tier 3: let html2canvas attempt it via useCORS
-    dstImg.crossOrigin = 'anonymous';
-  }));
-
-  // Wait for any imgs that still need to load after src changes above.
-  await Promise.all(
-    dstImgs.map(img =>
-      img.complete
-        ? Promise.resolve()
-        : new Promise<void>(resolve => { img.onload = img.onerror = () => resolve(); })
-    )
-  );
-
-  // Collect each cell's top y-position (pixels from container top) before
-  // we remove the element from the DOM.
-  const containerTop = offscreen.getBoundingClientRect().top;
-  const cellTopsPx = Array.from(clone.querySelectorAll('.jp-Cell')).map(
-    cell => cell.getBoundingClientRect().top - containerTop
-  );
-
-  let canvas: HTMLCanvasElement;
-  try {
-    canvas = await html2canvas(offscreen, { scale: 1, useCORS: true });
-  } finally {
-    document.body.removeChild(offscreen);
-  }
-
-  if (canvas.height === 0) return;
-
-  const doc = new jsPDF({ orientation: 'portrait', format: 'a4', unit: 'mm' });
-  const pageWidth = doc.internal.pageSize.getWidth();   // 210 mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // 297 mm
-
-  const mmPerPx = pageWidth / canvas.width;
-  const totalHeightMm = canvas.height * mmPerPx;
-  const cellTopsMm = cellTopsPx.map(px => px * mmPerPx);
-
-  // Build page break positions that land at cell boundaries.
-  // For each candidate break (cursor + pageHeight), find the latest cell
-  // start that falls at or before that point — the cell will then begin
-  // fresh on the next page rather than being split.
-  const breaks: number[] = [0];
-  let cursor = 0;
-  while (cursor < totalHeightMm) {
-    const rawEnd = cursor + pageHeight;
-    if (rawEnd >= totalHeightMm) break;
-
-    let bestBreak = rawEnd;
-    for (const cellTop of cellTopsMm) {
-      if (cellTop > cursor && cellTop <= rawEnd) {
-        bestBreak = cellTop; // keep updating — want the last one before rawEnd
-      }
-    }
-    breaks.push(bestBreak);
-    cursor = bestBreak;
-  }
-  breaks.push(totalHeightMm);
-
-  // Render each page as an independent canvas slice so that the break
-  // position can vary per page.
-  for (let i = 0; i < breaks.length - 1; i++) {
-    const startPx = Math.round(breaks[i] / mmPerPx);
-    const endPx = Math.round(breaks[i + 1] / mmPerPx);
-    const sliceHeightPx = endPx - startPx;
-    const sliceHeightMm = breaks[i + 1] - breaks[i];
-
-    const slice = document.createElement('canvas');
-    slice.width = canvas.width;
-    slice.height = sliceHeightPx;
-    slice.getContext('2d')!.drawImage(
-      canvas, 0, startPx, canvas.width, sliceHeightPx,
-      0, 0, canvas.width, sliceHeightPx
-    );
-
-    if (i > 0) doc.addPage();
-    doc.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageWidth, sliceHeightMm);
-  }
-
-  doc.save(outputName);
 }
