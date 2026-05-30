@@ -39,8 +39,9 @@ import { PathExt } from '@jupyterlab/coreutils';
 import { DocumentWidget } from '@jupyterlab/docregistry';
 
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-export function exportNotebookAsPDF(
+export async function exportNotebookAsPDF(
   notebook: DocumentWidget<Notebook, INotebookModel>,
   fileName?: string
 ): Promise<void> {
@@ -49,21 +50,37 @@ export function exportNotebookAsPDF(
     PathExt.extname(notebook.context.path)
   );
   const name = fileName ?? defaultName;
+  const outputName = name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`;
 
-  const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
+  const element = notebook.content.node;
 
-  return new Promise((resolve, reject) => {
-    doc.html(notebook.content.node, {
-      callback: () => {
-        try {
-          doc.save(name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`);
-          resolve();
-        } catch (err) {
-          reject(err);
-        }
-      },
-      html2canvas: { scale: 0.25 },
-      autoPaging: 'slice'
-    });
+  // Capture the full scrollable height, not just the visible viewport portion
+  const canvas = await html2canvas(element, {
+    scale: 1,
+    useCORS: true,
+    height: element.scrollHeight,
+    windowHeight: element.scrollHeight
   });
+
+  const imgData = canvas.toDataURL('image/jpeg', 0.92);
+  const doc = new jsPDF({ orientation: 'portrait', format: 'a4', unit: 'mm' });
+
+  const pageWidth = doc.internal.pageSize.getWidth();   // 210 mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // 297 mm
+
+  // Total image height in mm, scaled to fit the page width
+  const totalHeightMm = (canvas.height / canvas.width) * pageWidth;
+
+  let yOffset = 0;
+  let page = 0;
+
+  while (yOffset < totalHeightMm) {
+    if (page > 0) doc.addPage();
+    // Shift the image up by yOffset so each page shows the next slice
+    doc.addImage(imgData, 'JPEG', 0, -yOffset, pageWidth, totalHeightMm);
+    yOffset += pageHeight;
+    page++;
+  }
+
+  doc.save(outputName);
 }
