@@ -93,6 +93,64 @@ export async function exportNotebookAsPDF(
     }
   });
 
+  // Inline every img as a data URL so html2canvas can draw it without running
+  // into canvas-taint restrictions. Three-tier approach:
+  //   1. drawImage from the live element — instant, works for same-origin imgs.
+  //   2. fetch with CORS — works for cross-origin servers that have CORS
+  //      configured (e.g. S3 buckets serving public assets). cache:'no-cache'
+  //      avoids getting a cached non-CORS response that would taint the canvas.
+  //   3. Set crossOrigin="anonymous" and let html2canvas useCORS try last.
+  const srcImgs = Array.from(sourceEl.querySelectorAll('img'));
+  const dstImgs = Array.from(clone.querySelectorAll('img'));
+  await Promise.all(srcImgs.map(async (srcImg, i) => {
+    const dstImg = dstImgs[i];
+    if (!dstImg) return;
+    dstImg.loading = 'eager';
+
+    // Tier 1: same-origin / already-decoded
+    if (srcImg.complete && srcImg.naturalWidth > 0) {
+      try {
+        const tmp = document.createElement('canvas');
+        tmp.width = srcImg.naturalWidth;
+        tmp.height = srcImg.naturalHeight;
+        tmp.getContext('2d')?.drawImage(srcImg, 0, 0);
+        dstImg.src = tmp.toDataURL('image/png');
+        return;
+      } catch { /* cross-origin taint — fall through */ }
+    }
+
+    // Tier 2: fetch with CORS (handles cross-origin images like S3)
+    const src = srcImg.src || dstImg.src;
+    if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+      try {
+        const resp = await fetch(src, { mode: 'cors', cache: 'no-cache' });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          dstImg.src = dataUrl;
+          return;
+        }
+      } catch { /* no CORS headers on server — fall through */ }
+    }
+
+    // Tier 3: let html2canvas attempt it via useCORS
+    dstImg.crossOrigin = 'anonymous';
+  }));
+
+  // Wait for any imgs that still need to load after src changes above.
+  await Promise.all(
+    dstImgs.map(img =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>(resolve => { img.onload = img.onerror = () => resolve(); })
+    )
+  );
+
   // Collect each cell's top y-position (pixels from container top) before
   // we remove the element from the DOM.
   const containerTop = offscreen.getBoundingClientRect().top;
