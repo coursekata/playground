@@ -635,12 +635,46 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       label: 'Close notebook',
       execute: async () => {
         const panel = tracker.currentWidget;
-
-        if (!await promptIfDirty()) return;
-
         const handle = getCurrentFileHandle();
-        if (handle) {
-          removeRecentNotebook({ label: handle.name });
+        const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
+
+        // VFS notebook: closing deletes it from browser storage, so we need a
+        // tailored prompt that warns about that and (on Chrome) offers Save as file.
+        const isVfs = !handle && notebookSourceUrl === null
+          && !!panel && !!panel.context.path && panel.context.path !== 'Untitled.ipynb';
+
+        if (isVfs) {
+          const isDirty = panel!.context.model.dirty;
+          const name = panel!.context.path;
+          const body = isDirty
+            ? `"${name}" has unsaved changes. Closing will remove it from browser storage.`
+            : `Closing "${name}" will remove it from browser storage.`;
+
+          const buttons = [
+            Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
+            Dialog.cancelButton({ label: 'Close', className: 'ck-btn' }),
+            ...(canSaveToFile ? [Dialog.okButton({ label: 'Save as file', className: 'ck-btn' })] : [])
+          ];
+
+          const result = await showDialog({ title: 'Close notebook', body, buttons });
+          if (result.button.label === 'Cancel' || (!result.button.accept && result.button.label !== 'Close')) return;
+
+          if (result.button.label === 'Save as file') {
+            await commands.execute(Commands.saveToFile);
+            // If user cancelled the file picker, file handle is still null — abort close
+            if (!getCurrentFileHandle()) return;
+          }
+
+          // Delete the notebook from VFS to free storage
+          try { await serviceManager.contents.delete(panel!.context.path); } catch { /* ignore */ }
+          try { sessionStorage.removeItem(`vfs-cache:${panel!.context.path}`); } catch { /* ignore */ }
+        } else {
+          if (!await promptIfDirty()) return;
+        }
+
+        const currentHandle = getCurrentFileHandle();
+        if (currentHandle) {
+          removeRecentNotebook({ label: currentHandle.name });
         } else if (notebookSourceUrl !== null) {
           removeRecentNotebook({ url: notebookSourceUrl });
         } else if (panel) {
