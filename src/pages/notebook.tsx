@@ -843,7 +843,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       // full toJSON() output. Compare cells only so metadata updates don't
       // look like real user edits.
       await panel.context.ready;
-      const _initialCells = JSON.stringify((panel.context.model.toJSON() as INotebookContent).cells ?? []);
+      let _initialCells = JSON.stringify((panel.context.model.toJSON() as INotebookContent).cells ?? []);
       panel.context.model.dirty = false;
       panel.context.model.stateChanged.connect(() => {
         if (!panel.context.model.dirty) return;
@@ -854,6 +854,11 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         }
       });
       await panel.sessionContext.ready;
+      // Re-baseline after kernel init: the kernel may modify cells (clear execution
+      // counts, add ids, etc.) between context.ready and sessionContext.ready, causing
+      // the stateChanged guard to miss spurious dirty events. Re-snapshot and clear.
+      _initialCells = JSON.stringify((panel.context.model.toJSON() as INotebookContent).cells ?? []);
+      panel.context.model.dirty = false;
 
       const url = new URL(window.location.href);
       if (url.searchParams.has('kernel')) {
