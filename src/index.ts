@@ -10,8 +10,9 @@ import routesPlugin from './routes';
 import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
 import { notebookPlugin } from './pages/notebook';
-import { getCurrentFileHandle, saveToHandle } from './filesystem';
+import { getCurrentFileHandle, saveToHandle, isFileSystemAccessSupported } from './filesystem';
 import { generateDefaultNotebookName, showSavedToast } from './notebook-utils';
+import { enforceVfsLimit } from './recents';
 
 import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
 import { singleDocumentMode } from './single-mode';
@@ -102,41 +103,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
-        const suggestedName =
-          panel.context.path && panel.context.path !== 'Untitled.ipynb'
-            ? panel.context.path.replace(/\.ipynb$/i, '')
-            : generateDefaultNotebookName();
-
-        const input = document.createElement('input');
-        input.value = suggestedName;
-        input.style.width = '100%';
-        input.style.boxSizing = 'border-box';
-        input.style.padding = '8px';
-
-        const body = new Widget();
-        body.node.appendChild(input);
-
-        const result = await showDialog({
-          title: 'Download PDF as…',
-          body,
-          buttons: [Dialog.cancelButton({ className: 'ck-btn' }), Dialog.okButton({ label: 'Download', className: 'ck-btn' })]
-        });
-
-        if (!result.button.accept) {
-          return;
-        }
-
-        const rawName = input.value.trim() || suggestedName;
-
         try {
-          await exportNotebookAsPDF(panel, rawName);
+          await exportNotebookAsPDF(panel);
         } catch (error) {
           console.error('Failed to export notebook as PDF:', error);
-          await showDialog({
-            title: 'Error exporting PDF',
-            body: 'An error occurred while exporting the notebook as a PDF.',
-            buttons: [Dialog.okButton()]
-          });
         }
       }
     });
@@ -195,8 +165,74 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
-        // No file handle yet — fall through to Save as… (new notebook or GitHub notebook)
-        await commands.execute(Commands.saveToFile);
+        if (isFileSystemAccessSupported()) {
+          // Chrome/Edge without a file handle yet — show file picker
+          await commands.execute(Commands.saveToFile);
+          return;
+        }
+
+        // Safari/Firefox — save to browser VFS.
+        // Untitled notebooks get a name dialog first; all others save silently.
+        const isUntitled = !panel.context.path || panel.context.path === 'Untitled.ipynb';
+
+        let targetName = panel.context.path;
+
+        if (isUntitled) {
+          const suggestedName = generateDefaultNotebookName();
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = suggestedName;
+          input.style.cssText = 'width:100%;box-sizing:border-box;padding:8px';
+          const body = new Widget();
+          body.node.appendChild(input);
+          const result = await showDialog({
+            title: 'Save in browser',
+            body,
+            buttons: [
+              Dialog.cancelButton({ className: 'ck-btn' }),
+              Dialog.okButton({ label: 'Save', className: 'ck-btn' })
+            ]
+          });
+          if (!result.button.accept) return;
+          const entered = input.value.trim() || suggestedName;
+          targetName = entered.toLowerCase().endsWith('.ipynb') ? entered : `${entered}.ipynb`;
+        }
+
+        // Evict oldest VFS notebooks beyond limit before saving
+        const evicted = enforceVfsLimit(panel.context.path);
+        for (const e of evicted) {
+          try { await app.serviceManager.contents.delete(e.path); } catch { /* ignore */ }
+          Notification.info(`Removed "${e.label}" from browser storage to make room.`, { autoClose: 3000 });
+        }
+
+        try {
+          if (targetName !== panel.context.path) {
+            await panel.context.rename(targetName);
+          }
+          await panel.context.save();
+          // Keep the VFS session cache in sync so recents can reopen this notebook
+          try {
+            sessionStorage.setItem(
+              `vfs-cache:${panel.context.path}`,
+              JSON.stringify(panel.context.model.toJSON())
+            );
+          } catch { /* ignore quota errors */ }
+          // Ensure this notebook appears in recents as a VFS entry
+          const { addRecentNotebook } = await import('./recents');
+          addRecentNotebook({ label: panel.context.path, type: 'vfs', path: panel.context.path });
+          showSavedToast();
+        } catch (err) {
+          console.error('Failed to save to browser:', err);
+          const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+          if (isQuota) {
+            Notification.error(
+              'Browser storage is full. Try File → Clear storage, or use “Save as file” to save to disk.',
+              { autoClose: 8000 }
+            );
+          } else {
+            Notification.warning('Could not save to browser.', { autoClose: 4000 });
+          }
+        }
       }
     });
 

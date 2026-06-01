@@ -181,59 +181,39 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     });
 
     const fsaSupported = isFileSystemAccessSupported();
-    if (!fsaSupported && !sessionStorage.getItem('ck-fsa-notice')) {
-      sessionStorage.setItem('ck-fsa-notice', '1');
-      setTimeout(() => {
-        Notification.info(
-          "File saving isn't supported in this browser — use \"Download notebook\" to save your work.",
-          { autoClose: 10000 }
-        );
-      }, 2000);
-    }
+
+    // Returns true if it's safe to navigate away (no unsaved changes, or user resolved them).
+    // Handles all three cases: Chrome+handle → Save, Chrome+no-handle → Save as file, Safari → Save in browser.
+    const promptIfDirty = async (): Promise<boolean> => {
+      const currentWidget = tracker.currentWidget;
+      if (!currentWidget || !currentWidget.context.model.dirty) return true;
+
+      const hasHandle = !!getCurrentFileHandle();
+      const saveLabel = hasHandle ? 'Save' : fsaSupported ? 'Save as file' : 'Save in browser';
+
+      const result = await showDialog({
+        title: 'Unsaved Changes',
+        body: `"${currentWidget.context.path}" has unsaved changes.`,
+        buttons: [
+          Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
+          Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
+          Dialog.okButton({ label: saveLabel, className: 'ck-btn' })
+        ]
+      });
+
+      if (result.button.label === 'Cancel') return false;
+      if (result.button.accept) {
+        if (hasHandle || !fsaSupported) {
+          await commands.execute(Commands.saveNotebookCommand);
+        } else {
+          await commands.execute(Commands.saveToFile); // Chrome, no handle → file picker
+        }
+      }
+      return true;
+    };
 
     const openNewNotebookWindow = async (kernelParam: 'r' | 'python'): Promise<void> => {
-      const currentWidget = tracker.currentWidget;
-      if (fsaSupported && currentWidget && currentWidget.context.model.dirty) {
-        const result = await showDialog({
-          title: 'Unsaved Notebook',
-          body: `"${currentWidget.context.path}" has unsaved changes.`,
-          buttons: [
-            Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-            Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-            Dialog.okButton({ label: fsaSupported ? 'Save' : 'Download', className: 'ck-btn' })
-          ]
-        });
-        if (result.button.label === 'Cancel') return;
-        if (result.button.accept) {
-          await commands.execute(Commands.saveNotebookCommand);
-        }
-      }
-      if (!fsaSupported && currentWidget && currentWidget.context.model.dirty) {
-        const _hasCache = sessionStorage.getItem(`vfs-cache:${currentWidget.context.path}`) !== null;
-        if (!_hasCache) {
-          const _ni = document.createElement('input');
-          _ni.value = currentWidget.context.path.replace(/\.ipynb$/i, '') || 'my-notebook';
-          _ni.style.cssText = 'width:100%;box-sizing:border-box;padding:8px';
-          const _nb = new Widget();
-          _nb.node.appendChild(_ni);
-          const _r = await showDialog({
-            title: 'Name your new notebook',
-            body: _nb,
-            buttons: [
-              Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-              Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-              Dialog.okButton({ label: 'Save to browser', className: 'ck-btn' })
-            ]
-          });
-          if (_r.button.label === 'Cancel') return;
-          if (_r.button.accept) {
-            const _rn = _ni.value.trim() || 'my-notebook';
-            const _fn = _rn.toLowerCase().endsWith('.ipynb') ? _rn : `${_rn}.ipynb`;
-            try { sessionStorage.setItem(`vfs-cache:${_fn}`, JSON.stringify(currentWidget.context.model.toJSON())); } catch {}
-            addRecentNotebook({ label: _fn, type: 'vfs', path: _fn });
-          }
-        }
-      }
+      if (!await promptIfDirty()) return;
       const url = new URL(window.location.href);
       url.searchParams.delete('uploaded-notebook');
       url.searchParams.delete('from');
@@ -365,48 +345,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         const parsed = (await response.json()) as INotebookContent;
         const fileName = fetchUrl.split('/').pop() ?? 'notebook.ipynb';
 
-        const currentWidget = tracker.currentWidget;
-        if (fsaSupported && currentWidget && currentWidget.context.model.dirty) {
-          const result = await showDialog({
-            title: 'Unsaved Notebook',
-            body: `"${currentWidget.context.path}" has unsaved changes.`,
-            buttons: [
-              Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-              Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-              Dialog.okButton({ label: 'Save', className: 'ck-btn' })
-            ]
-          });
-          if (result.button.label === 'Cancel') return;
-          if (result.button.accept) {
-            await commands.execute(Commands.saveNotebookCommand);
-          }
-        }
-        if (!fsaSupported && currentWidget && currentWidget.context.model.dirty) {
-          const _hasCache = sessionStorage.getItem(`vfs-cache:${currentWidget.context.path}`) !== null;
-          if (!_hasCache) {
-            const _ni = document.createElement('input');
-            _ni.value = currentWidget.context.path.replace(/\.ipynb$/i, '') || 'my-notebook';
-            _ni.style.cssText = 'width:100%;box-sizing:border-box;padding:8px';
-            const _nb = new Widget();
-            _nb.node.appendChild(_ni);
-            const _r = await showDialog({
-              title: 'Name your new notebook',
-              body: _nb,
-              buttons: [
-                Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-                Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-                Dialog.okButton({ label: 'Save to browser', className: 'ck-btn' })
-              ]
-            });
-            if (_r.button.label === 'Cancel') return;
-            if (_r.button.accept) {
-              const _rn = _ni.value.trim() || 'my-notebook';
-              const _fn = _rn.toLowerCase().endsWith('.ipynb') ? _rn : `${_rn}.ipynb`;
-              try { sessionStorage.setItem(`vfs-cache:${_fn}`, JSON.stringify(currentWidget.context.model.toJSON())); } catch {}
-              addRecentNotebook({ label: _fn, type: 'vfs', path: _fn });
-            }
-          }
-        }
+        if (!await promptIfDirty()) return;
 
         addRecentNotebook({ label: `GitHub: ${fileName}`, type: 'github', url: fetchUrl });
         flushVfsCaches();
@@ -437,48 +376,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     }
 
     const openLocalFile = async (): Promise<void> => {
-      const currentWidget = tracker.currentWidget;
-      if (fsaSupported && currentWidget && currentWidget.context.model.dirty) {
-        const result = await showDialog({
-          title: 'Unsaved Notebook',
-          body: `"${currentWidget.context.path}" has unsaved changes.`,
-          buttons: [
-            Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-            Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-            Dialog.okButton({ label: fsaSupported ? 'Save' : 'Download', className: 'ck-btn' })
-          ]
-        });
-        if (result.button.label === 'Cancel') return;
-        if (result.button.accept) {
-          await commands.execute(Commands.saveNotebookCommand);
-        }
-      }
-      if (!fsaSupported && currentWidget && currentWidget.context.model.dirty) {
-        const _hasCache = sessionStorage.getItem(`vfs-cache:${currentWidget.context.path}`) !== null;
-        if (!_hasCache) {
-          const _ni = document.createElement('input');
-          _ni.value = currentWidget.context.path.replace(/\.ipynb$/i, '') || 'my-notebook';
-          _ni.style.cssText = 'width:100%;box-sizing:border-box;padding:8px';
-          const _nb = new Widget();
-          _nb.node.appendChild(_ni);
-          const _r = await showDialog({
-            title: 'Name your new notebook',
-            body: _nb,
-            buttons: [
-              Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-              Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-              Dialog.okButton({ label: 'Save to browser', className: 'ck-btn' })
-            ]
-          });
-          if (_r.button.label === 'Cancel') return;
-          if (_r.button.accept) {
-            const _rn = _ni.value.trim() || 'my-notebook';
-            const _fn = _rn.toLowerCase().endsWith('.ipynb') ? _rn : `${_rn}.ipynb`;
-            try { sessionStorage.setItem(`vfs-cache:${_fn}`, JSON.stringify(currentWidget.context.model.toJSON())); } catch {}
-            addRecentNotebook({ label: _fn, type: 'vfs', path: _fn });
-          }
-        }
-      }
+      if (!await promptIfDirty()) return;
       if (!isFileSystemAccessSupported()) {
         const input = document.createElement('input');
         input.type = 'file';
@@ -525,8 +423,19 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       }
 
       const uploadId = UUID.uuid4();
-      localStorage.setItem(`uploaded-notebook:${uploadId}`, text);
-      localStorage.setItem(`uploaded-notebook-name:${uploadId}`, handle.name);
+      try {
+        localStorage.setItem(`uploaded-notebook:${uploadId}`, text);
+        localStorage.setItem(`uploaded-notebook-name:${uploadId}`, handle.name);
+      } catch (err) {
+        const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+        Notification.error(
+          isQuota
+            ? 'Browser storage is full. Try File → Clear storage to free space.'
+            : 'Could not stage notebook for opening.',
+          { autoClose: 6000 }
+        );
+        return;
+      }
       await storeHandleForUpload(uploadId, handle);
 
       const recentKey = UUID.uuid4();
@@ -569,10 +478,22 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           return;
         }
         const uploadId = UUID.uuid4();
-        localStorage.setItem(`uploaded-notebook:${uploadId}`, cached);
-        localStorage.setItem(`uploaded-notebook-name:${uploadId}`, nb.path);
-        localStorage.setItem(`uploaded-notebook-from-cache:${uploadId}`, '1');
+        try {
+          localStorage.setItem(`uploaded-notebook:${uploadId}`, cached);
+          localStorage.setItem(`uploaded-notebook-name:${uploadId}`, nb.path);
+          localStorage.setItem(`uploaded-notebook-from-cache:${uploadId}`, '1');
+        } catch (err) {
+          const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+          Notification.error(
+            isQuota
+              ? 'Browser storage is full. Try File → Clear storage to free space.'
+              : 'Could not stage notebook for opening.',
+            { autoClose: 6000 }
+          );
+          return;
+        }
         addRecentNotebook(nb);
+        if (!await promptIfDirty()) return;
         const target = new URL(window.location.href);
         target.search = '';
         target.searchParams.set('uploaded-notebook', uploadId);
@@ -636,8 +557,19 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           const diskFile = await handle.getFile();
           const text = await diskFile.text();
           const uploadId = UUID.uuid4();
-          localStorage.setItem(`uploaded-notebook:${uploadId}`, text);
-          localStorage.setItem(`uploaded-notebook-name:${uploadId}`, handle.name);
+          try {
+            localStorage.setItem(`uploaded-notebook:${uploadId}`, text);
+            localStorage.setItem(`uploaded-notebook-name:${uploadId}`, handle.name);
+          } catch (err) {
+            const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+            Notification.error(
+              isQuota
+                ? 'Browser storage is full. Try File → Clear storage to free space.'
+                : 'Could not stage notebook for opening.',
+              { autoClose: 6000 }
+            );
+            return;
+          }
           await storeHandleForUpload(uploadId, handle);
           addRecentNotebook(nb);
 
@@ -646,28 +578,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           target.searchParams.set('uploaded-notebook', uploadId);
           target.hash = '';
 
-          // Warn only if the current notebook has unsaved edits.
-          const currentWidget = tracker.currentWidget;
-          if (currentWidget) {
-            const isDirty = currentWidget.context.model.dirty;
-            if (isDirty) {
-              const result = await showDialog({
-                title: 'Unsaved Notebook',
-                body: `"${currentWidget.context.path}" has unsaved changes.`,
-                buttons: [
-                  Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-                  Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-                  Dialog.okButton({ label: fsaSupported ? 'Save' : 'Download', className: 'ck-btn' })
-                ]
-              });
-              if (result.button.label === 'Cancel') {
-                return;
-              }
-              if (result.button.label === 'Save') {
-                await commands.execute(Commands.saveNotebookCommand);
-              }
-            }
-          }
+          if (!await promptIfDirty()) return;
 
           flushVfsCaches();
           _ckIntentionalNav = true;
@@ -682,15 +593,10 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     };
 
     commands.addCommand(Commands.saveToFile, {
-      label: 'Save as…',
+      label: 'Save as file…',
       execute: async () => {
         const panel = tracker.currentWidget;
         if (!panel) {
-          return;
-        }
-
-        if (!fsaSupported) {
-          await commands.execute(Commands.downloadNotebookCommand);
           return;
         }
 
@@ -730,65 +636,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       execute: async () => {
         const panel = tracker.currentWidget;
 
-        if (fsaSupported && panel && panel.context.model.dirty) {
-          const result = await showDialog({
-            title: 'Unsaved Notebook',
-            body: `"${panel.context.path}" has unsaved changes.`,
-            buttons: [
-              Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-              Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-              Dialog.okButton({ label: 'Save', className: 'ck-btn' })
-            ]
-          });
-          if (result.button.label === 'Cancel') return;
-          if (result.button.accept) {
-            await commands.execute(Commands.saveNotebookCommand);
-          }
-        }
-        if (!fsaSupported && panel) {
-          const _lastDl = sessionStorage.getItem(`ck-last-downloaded:${panel.context.path}`);
-          const _currentCells = JSON.stringify((panel.context.model.toJSON() as INotebookContent).cells ?? []);
-          const _hasCache = sessionStorage.getItem(`vfs-cache:${panel.context.path}`) !== null;
-          if (_lastDl === null ? _currentCells !== '[]' : _lastDl !== _currentCells) {
-            if (!_hasCache) {
-              const _ni = document.createElement('input');
-              _ni.value = panel.context.path.replace(/\.ipynb$/i, '') || 'my-notebook';
-              _ni.style.cssText = 'width:100%;box-sizing:border-box;padding:8px';
-              const _nb = new Widget();
-              _nb.node.appendChild(_ni);
-              const _r = await showDialog({
-                title: 'Name your new notebook',
-                body: _nb,
-                buttons: [
-                  Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-                  Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-                  Dialog.okButton({ label: 'Save to browser', className: 'ck-btn' })
-                ]
-              });
-              if (_r.button.label === 'Cancel') return;
-              if (_r.button.accept) {
-                const _rn = _ni.value.trim() || 'my-notebook';
-                const _fn = _rn.toLowerCase().endsWith('.ipynb') ? _rn : `${_rn}.ipynb`;
-                try { sessionStorage.setItem(`vfs-cache:${_fn}`, JSON.stringify(panel.context.model.toJSON())); } catch {}
-                addRecentNotebook({ label: _fn, type: 'vfs', path: _fn });
-              }
-            } else {
-              const _rd = await showDialog({
-                title: 'Close notebook',
-                body: 'Download a copy to your device before closing? Your changes are saved in the browser.',
-                buttons: [
-                  Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-                  Dialog.cancelButton({ label: 'Close', className: 'ck-btn' }),
-                  Dialog.okButton({ label: 'Download', className: 'ck-btn' })
-                ]
-              });
-              if (_rd.button.label === 'Cancel') return;
-              if (_rd.button.accept) {
-                await commands.execute(Commands.downloadNotebookCommand);
-              }
-            }
-          }
-        }
+        if (!await promptIfDirty()) return;
 
         const handle = getCurrentFileHandle();
         if (handle) {
@@ -809,9 +657,13 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
             const _cachedNext = sessionStorage.getItem(`vfs-cache:${_next.path}`);
             if (!_cachedNext) continue; // stale entry — try next recent
             const _uid = UUID.uuid4();
-            localStorage.setItem(`uploaded-notebook:${_uid}`, _cachedNext);
-            localStorage.setItem(`uploaded-notebook-name:${_uid}`, _next.path);
-            localStorage.setItem(`uploaded-notebook-from-cache:${_uid}`, '1');
+            try {
+              localStorage.setItem(`uploaded-notebook:${_uid}`, _cachedNext);
+              localStorage.setItem(`uploaded-notebook-name:${_uid}`, _next.path);
+              localStorage.setItem(`uploaded-notebook-from-cache:${_uid}`, '1');
+            } catch {
+              continue; // storage full — skip this notebook, try next recent
+            }
             const _t = new URL(window.location.href);
             _t.search = '';
             _t.searchParams.set('uploaded-notebook', _uid);
