@@ -225,8 +225,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
           console.error('Failed to save to browser:', err);
           const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
           if (isQuota) {
+            const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
             Notification.error(
-              'Browser storage is full. Try File → Clear storage, or use “Save as file” to save to disk.',
+              canSaveToFile
+                ? 'Browser storage is full. Try File → Clear storage, or use “Save as file” to save to disk.'
+                : 'Browser storage is full. Try File → Clear storage to free space.',
               { autoClose: 8000 }
             );
           } else {
