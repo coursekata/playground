@@ -838,6 +838,38 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
 
     tracker.widgetAdded.connect(async (_, panel) => {
       console.log('[widgetAdded]', panel.context.path, 'dirty=', panel.context.model.dirty);
+
+      // Disable ReactiveToolbar's overflow-to-popup behavior. The toolbar's
+      // _resizer is throttled at 500ms; using setTimeout(0) runs before it
+      // fires, so we can cancel it and install a no-op. Any items already
+      // moved to the popup (on a re-open) are moved back via dataset.jpItemName.
+      setTimeout(() => {
+        if (panel.isDisposed) return;
+        const toolbar = (panel.toolbar as any);
+        if (!toolbar) return;
+        if (toolbar._resizer) {
+          toolbar._resizer.dispose();
+        }
+        toolbar._resizer = { invoke: () => Promise.resolve(), dispose: () => { /* no-op */ } };
+        const opener = toolbar.popupOpener;
+        if (opener?.popup) {
+          const popup = opener.popup;
+          let count: number = popup.widgetCount();
+          while (count > 0) {
+            const widget = popup.widgetAt(0);
+            if (!widget) break;
+            const name: string = (widget.node as HTMLElement).dataset['jpItemName'] ?? '';
+            if (name) {
+              const pos = (toolbar._widgetPositions as Map<string, number>)?.get(name) ?? 0;
+              toolbar.insertItem(pos, name, widget);
+            }
+            const next: number = popup.widgetCount();
+            if (next >= count) break;
+            count = next;
+          }
+          opener.hide();
+        }
+      }, 0);
       // Kernel init (xr in particular) fires spurious dirty events and also
       // updates notebook metadata (kernelspec, language_info) which changes the
       // full toJSON() output. Compare cells only so metadata updates don't
