@@ -1,6 +1,7 @@
 import { CommandRegistry } from '@lumino/commands';
 import { Menu } from '@lumino/widgets';
 import { ToolbarButton } from '@jupyterlab/apputils';
+import { getCurrentFileHandle } from '../filesystem';
 
 export class OpenDropdownButton extends ToolbarButton {
   constructor(
@@ -21,6 +22,8 @@ export class OpenDropdownButton extends ToolbarButton {
     clearStorage: () => void,
     getRecentItems: () => Array<{ label: string; open: () => void; isCurrent: () => boolean }>
   ) {
+    const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
+
     const commandOpenFile = 'jupytereverywhere:file-open-from-file';
     const commandOpenUrl = 'jupytereverywhere:file-open-from-url';
     const commandNewR = 'jupytereverywhere:file-new-r-notebook';
@@ -73,6 +76,7 @@ export class OpenDropdownButton extends ToolbarButton {
     if (!commands.hasCommand(commandDownload)) {
       commands.addCommand(commandDownload, {
         label: 'Download notebook',
+        isVisible: () => !canSaveToFile,
         execute: () => {
           downloadNotebook();
         }
@@ -99,7 +103,7 @@ export class OpenDropdownButton extends ToolbarButton {
 
     if (!commands.hasCommand(commandSaveChanges)) {
       commands.addCommand(commandSaveChanges, {
-        label: 'Save changes',
+        label: canSaveToFile ? 'Save changes' : 'Save changes in browser…',
         isEnabled: () => isSaveChangesEnabled(),
         execute: () => {
           saveChanges();
@@ -109,7 +113,8 @@ export class OpenDropdownButton extends ToolbarButton {
 
     if (!commands.hasCommand(commandSaveAs)) {
       commands.addCommand(commandSaveAs, {
-        label: 'Save as…',
+        label: () => getCurrentFileHandle() !== null ? 'Save as…' : 'Save as file…',
+        isVisible: () => canSaveToFile,
         execute: () => {
           saveAs();
         }
