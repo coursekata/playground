@@ -45,3 +45,4 @@ runs:
         name: extension-artifacts
         path: dist/jupytereverywhere*
         if-no-files-found: error
+        retention-days: 5
