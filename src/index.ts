@@ -18,6 +18,7 @@ import { notebookFactoryPlugin } from './notebook-factory';
 import { placeholderPlugin } from './placeholders';
 import { EverywhereIcons } from './icons';
 import { sessionDialogs } from './dialogs';
+import { createFooter } from './footer';
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
@@ -26,6 +27,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
   requires: [INotebookTracker],
   activate: (app: JupyterFrontEnd, tracker: INotebookTracker) => {
     const { commands } = app;
+
+    // Persistent footer with links to the legal/compliance pages and the
+    // built-in third-party Licenses panel.
+    app.shell.add(createFooter(app), 'bottom');
 
     commands.addCommand(Commands.downloadNotebookCommand, {
       label: 'Download as a notebook',
