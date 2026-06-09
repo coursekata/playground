@@ -16,13 +16,13 @@ CourseKata Notebook runs entirely in your web browser — no installation requir
 
 Click **File** in the toolbar to see your options:
 
-| Option | What it does |
-|---|---|
-| **New R notebook** | Start a fresh R notebook |
-| **New Python notebook** | Start a fresh Python notebook |
-| **Open from file** | Open a `.ipynb` file from your computer |
-| **Open from GitHub** | Open a notebook by pasting a GitHub URL |
-| **Open from URL** | Open a notebook from any public `.ipynb` URL |
+| Option                  | What it does                                 |
+| ----------------------- | -------------------------------------------- |
+| **New R notebook**      | Start a fresh R notebook                     |
+| **New Python notebook** | Start a fresh Python notebook                |
+| **Open from file**      | Open a `.ipynb` file from your computer      |
+| **Open from GitHub**    | Open a notebook by pasting a GitHub URL      |
+| **Open from URL**       | Open a notebook from any public `.ipynb` URL |
 
 Recently opened notebooks appear at the bottom of the File menu so you can get back to them quickly.
 
@@ -76,16 +76,16 @@ Over time, notebooks accumulate in your browser's storage. You have a few ways t
 - **File → Close notebook** — removes the current notebook from browser storage.
 - **File → Clear storage** — removes all stored notebooks and resets the app completely. You'll be asked to confirm. This cannot be undone.
 
-> **Note:** "Clear browser cache" in your browser's settings does *not* clear notebook storage — notebook data is stored separately. Use **File → Clear storage** inside the app to remove it.
+> **Note:** "Clear browser cache" in your browser's settings does _not_ clear notebook storage — notebook data is stored separately. Use **File → Clear storage** inside the app to remove it.
 
 ---
 
 ## Keyboard shortcuts
 
-| Shortcut | Action |
-|---|---|
+| Shortcut          | Action                            |
+| ----------------- | --------------------------------- |
 | **Shift + Enter** | Run current cell and move to next |
-| **Cmd/Ctrl + S** | Save |
+| **Cmd/Ctrl + S**  | Save                              |
 
 ---
 
