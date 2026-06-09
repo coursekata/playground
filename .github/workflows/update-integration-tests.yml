@@ -6,6 +6,11 @@ on:
 
 permissions: {}
 
+# See build.yml: packageManager (for Dependabot) trips classic yarn's corepack
+# check inside base-setup; this opt-out restores it.
+env:
+  SKIP_YARN_COREPACK_CHECK: 1
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.issue.number }}
   cancel-in-progress: true

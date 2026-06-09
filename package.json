@@ -12,6 +12,7 @@
         "url": "https://github.com/coursekata/playground/issues"
     },
     "license": "BSD-3-Clause",
+    "packageManager": "yarn@3.5.0",
     "author": {
         "name": "CourseKata",
         "email": "info@coursekata.org"
