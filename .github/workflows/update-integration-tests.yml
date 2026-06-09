@@ -78,7 +78,7 @@ jobs:
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@affc83be6020d529b9368cd4d63e467877606600 # v1
 
       - name: Install micromamba
-        uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
+        uses: mamba-org/setup-micromamba@d7c9bd84e824b79d2af72a2d4196c7f4300d3476 # v3.0.0
 
       - name: Install jlpm
         run: python -m pip install -U "jupyterlab==4.5.0a3"
