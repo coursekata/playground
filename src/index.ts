@@ -1,5 +1,5 @@
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
-import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
+import { INotebookTracker } from '@jupyterlab/notebook';
 import { Dialog, showDialog, Notification } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { INotebookContent } from '@jupyterlab/nbformat';
@@ -10,7 +10,8 @@ import routesPlugin from './routes';
 import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
 import { notebookPlugin } from './pages/notebook';
-import { generateDefaultNotebookName, isNotebookEmpty } from './notebook-utils';
+import { generateDefaultNotebookName, showSavedToast } from './notebook-utils';
+import { enforceVfsLimit } from './recents';
 
 import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
 import { singleDocumentMode } from './single-mode';
@@ -136,11 +137,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    let saveReminderTimeout: number | null = null;
-    let isSaveReminderScheduled = false;
-    let hasShownSaveReminder = false;
-    let hasManuallySaved = false;
-
     commands.addCommand(Commands.saveNotebookCommand, {
       label: 'Save Notebook',
       execute: async () => {
@@ -149,13 +145,72 @@ const plugin: JupyterFrontEndPlugin<void> = {
           console.warn('No active notebook to save');
           return;
         }
-        if (panel.context.model.readOnly) {
-          console.info('Notebook is read-only, skipping save.');
-          return;
+
+        // Safari/Firefox — save to browser VFS.
+        // Untitled notebooks get a name dialog first; all others save silently.
+        const isUntitled = !panel.context.path || panel.context.path === 'Untitled.ipynb';
+
+        let targetName = panel.context.path;
+
+        if (isUntitled) {
+          const suggestedName = generateDefaultNotebookName();
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = suggestedName;
+          input.style.cssText = 'width:100%;box-sizing:border-box;padding:8px';
+          const body = new Widget();
+          body.node.appendChild(input);
+          const result = await showDialog({
+            title: 'Save in browser',
+            body,
+            buttons: [
+              Dialog.cancelButton({ className: 'ck-btn' }),
+              Dialog.okButton({ label: 'Save', className: 'ck-btn' })
+            ]
+          });
+          if (!result.button.accept) return;
+          const entered = input.value.trim() || suggestedName;
+          targetName = entered.toLowerCase().endsWith('.ipynb') ? entered : `${entered}.ipynb`;
         }
 
-        hasManuallySaved = true;
-        await panel.context.save();
+        // Evict oldest VFS notebooks beyond limit before saving
+        const evicted = enforceVfsLimit(panel.context.path);
+        for (const e of evicted) {
+          try { await app.serviceManager.contents.delete(e.path); } catch { /* ignore */ }
+          Notification.info(`Removed "${e.label}" from browser storage to make room.`, { autoClose: 3000 });
+        }
+
+        try {
+          if (targetName !== panel.context.path) {
+            await panel.context.rename(targetName);
+          }
+          await panel.context.save();
+          // Keep the VFS session cache in sync so recents can reopen this notebook
+          try {
+            sessionStorage.setItem(
+              `vfs-cache:${panel.context.path}`,
+              JSON.stringify(panel.context.model.toJSON())
+            );
+          } catch { /* ignore quota errors */ }
+          // Ensure this notebook appears in recents as a VFS entry
+          const { addRecentNotebook } = await import('./recents');
+          addRecentNotebook({ label: panel.context.path, type: 'vfs', path: panel.context.path });
+          showSavedToast();
+        } catch (err) {
+          console.error('Failed to save to browser:', err);
+          const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+          if (isQuota) {
+            const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
+            Notification.error(
+              canSaveToFile
+                ? 'Browser storage is full. Try File → Clear storage, or use "Save as file" to save to disk.'
+                : 'Browser storage is full. Try File → Clear storage to free space.',
+              { autoClose: 8000 }
+            );
+          } else {
+            Notification.warning('Could not save to browser.', { autoClose: 4000 });
+          }
+        }
       }
     });
 
@@ -204,76 +259,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    function startSaveReminder(currentTimeout: number | null, onFire: () => void): number {
-      if (currentTimeout) {
-        window.clearTimeout(currentTimeout);
-      }
-      return window.setTimeout(() => {
-        const message = hasManuallySaved
-          ? "It's been 5 minutes since you last saved this notebook. Make sure to download a copy so you can come back to your work later."
-          : "It's been 5 minutes since you started working on this notebook. Make sure to download a copy so you can come back to your work later.";
-
-        Notification.info(message, { autoClose: 8000 });
-        onFire();
-      }, 300 * 1000);
-    }
-
-    tracker.widgetAdded.connect((_, panel: NotebookPanel) => {
-      if (saveReminderTimeout) {
-        window.clearTimeout(saveReminderTimeout);
-        saveReminderTimeout = null;
-      }
-      isSaveReminderScheduled = false;
-      hasShownSaveReminder = false;
-
-      const maybeScheduleSaveReminder = () => {
-        if (hasShownSaveReminder) {
-          return;
-        }
-
-        const content = panel.context.model.toJSON() as INotebookContent;
-        if (panel.context.model.readOnly) {
-          return;
-        }
-        if (isNotebookEmpty(content)) {
-          return;
-        }
-        if (isSaveReminderScheduled) {
-          return;
-        }
-
-        isSaveReminderScheduled = true;
-        saveReminderTimeout = startSaveReminder(saveReminderTimeout, () => {
-          hasShownSaveReminder = true;
-          isSaveReminderScheduled = false;
-        });
-      };
-
-      void panel.context.ready.then(() => {
-        maybeScheduleSaveReminder();
-        panel.context.model.contentChanged.connect(() => {
-          maybeScheduleSaveReminder();
-        });
-
-        panel.context.saveState.connect((_, state) => {
-          if (state === 'completed') {
-            if (saveReminderTimeout) {
-              window.clearTimeout(saveReminderTimeout);
-              saveReminderTimeout = null;
-            }
-            isSaveReminderScheduled = false;
-            hasShownSaveReminder = false;
-          }
-        });
-      });
-
-      panel.disposed.connect(() => {
-        if (saveReminderTimeout) {
-          window.clearTimeout(saveReminderTimeout);
-          saveReminderTimeout = null;
-        }
-      });
-    });
   }
 };
 
