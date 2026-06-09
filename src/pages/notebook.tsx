@@ -11,16 +11,18 @@ import {
   IToolbarWidgetRegistry,
   ISessionContext,
   Notification,
-  createToolbarFactory
+  createToolbarFactory,
+  showDialog
 } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { MessageLoop } from '@lumino/messaging';
+import { UUID } from '@lumino/coreutils';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ITranslator } from '@jupyterlab/translation';
 import { Commands } from '../commands';
 import { KERNEL_URL_TO_NAME, KERNEL_DISPLAY_NAMES } from '../kernels';
 import { handleNotebookUpload, openNotebookContent } from '../upload';
-import { addRecentNotebook, getRecentNotebooks } from '../recents';
+import { RecentNotebook, addRecentNotebook, getRecentNotebooks, removeRecentNotebook } from '../recents';
 
 function mapLanguageToKernel(content: INotebookContent): string {
   const rawLang =
@@ -150,12 +152,49 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    const openNewNotebookWindow = (kernelParam: 'r' | 'python'): void => {
+    // Snapshot all open notebooks that have a VFS cache entry into sessionStorage.
+    // Call this before any page redirect so reopening from recents restores edits.
+    const flushVfsCaches = () => {
+      tracker.forEach(w => {
+        const path = w.context.path;
+        if (sessionStorage.getItem(`vfs-cache:${path}`) !== null) {
+          try {
+            sessionStorage.setItem(`vfs-cache:${path}`, JSON.stringify(w.context.model.toJSON()));
+          } catch { /* ignore quota errors */ }
+        }
+      });
+    };
+
+    // Returns true if it's safe to navigate away (no unsaved changes, or user resolved them).
+    const promptIfDirty = async (): Promise<boolean> => {
+      const currentWidget = tracker.currentWidget;
+      if (!currentWidget || !currentWidget.context.model.dirty) return true;
+
+      const result = await showDialog({
+        title: 'Unsaved Changes',
+        body: `"${currentWidget.context.path}" has unsaved changes.`,
+        buttons: [
+          Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
+          Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
+          Dialog.okButton({ label: 'Save in browser', className: 'ck-btn' })
+        ]
+      });
+
+      if (result.button.label === 'Cancel') return false;
+      if (result.button.accept) {
+        await commands.execute(Commands.saveNotebookCommand);
+      }
+      return true;
+    };
+
+    const openNewNotebookWindow = async (kernelParam: 'r' | 'python'): Promise<void> => {
+      if (!await promptIfDirty()) return;
       const url = new URL(window.location.href);
       url.searchParams.delete('uploaded-notebook');
       url.searchParams.delete('from');
       url.searchParams.delete('tab');
       url.searchParams.set('kernel', kernelParam);
+      flushVfsCaches();
       _ckIntentionalNav = true;
       tracker.forEach(w => { w.context.model.dirty = false; });
       window.location.href = url.toString();
@@ -231,6 +270,17 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         window.history.replaceState({}, '', currentUrl.toString());
 
         notebookSourceUrl = sourceUrl;
+        const fromCache = localStorage.getItem(`uploaded-notebook-from-cache:${id}`) === '1';
+        localStorage.removeItem(`uploaded-notebook-from-cache:${id}`);
+        if (!sourceUrl) {
+          try {
+            sessionStorage.setItem(`vfs-cache:${filename}`, JSON.stringify(content));
+          } catch { /* ignore quota errors */ }
+          addRecentNotebook({ label: filename, type: 'vfs', path: filename });
+        }
+        if (!fromCache) {
+          try { sessionStorage.setItem(`ck-last-downloaded:${filename}`, JSON.stringify(content.cells ?? [])); } catch {}
+        }
         localStorage.removeItem(`uploaded-notebook:${id}`);
         localStorage.removeItem(`uploaded-notebook-name:${id}`);
         if (sourceUrl) {
@@ -268,7 +318,10 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         const parsed = (await response.json()) as INotebookContent;
         const fileName = fetchUrl.split('/').pop() ?? 'notebook.ipynb';
 
+        if (!await promptIfDirty()) return;
+
         addRecentNotebook({ label: `GitHub: ${fileName}`, type: 'github', url: fetchUrl });
+        flushVfsCaches();
         _ckIntentionalNav = true;
         tracker.forEach(w => { w.context.model.dirty = false; });
         await openNotebookContent(parsed, fetchUrl);
@@ -295,13 +348,15 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       void createNewNotebook();
     }
 
-    const openLocalFile = (): void => {
+    const openLocalFile = async (): Promise<void> => {
+      if (!await promptIfDirty()) return;
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.ipynb,application/json';
       input.onchange = async () => {
         const file = input.files?.[0];
         if (file) {
+          flushVfsCaches();
           _ckIntentionalNav = true;
           tracker.forEach(w => { w.context.model.dirty = false; });
           await handleNotebookUpload(file);
@@ -309,6 +364,186 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       };
       input.click();
     };
+
+    const openRecentNotebook = async (nb: RecentNotebook): Promise<void> => {
+      if (nb.type === 'github' && nb.url) {
+        await openNotebookFromProvidedURL(nb.url);
+        return;
+      }
+      if (nb.type === 'vfs' && nb.path) {
+        // Fast path: notebook already open
+        let existingId: string | null = null;
+        tracker.forEach(w => {
+          if (!existingId && w.context.path === nb.path) existingId = w.id;
+        });
+        if (existingId) {
+          app.shell.activateById(existingId);
+          notebookSourceUrl = null;
+          addRecentNotebook(nb);
+          return;
+        }
+        const cached = sessionStorage.getItem(`vfs-cache:${nb.path}`);
+        if (!cached) {
+          Notification.warning(
+            'Could not reopen the notebook — try "Open from file" to upload it again.',
+            { autoClose: 4000 }
+          );
+          return;
+        }
+        const uploadId = UUID.uuid4();
+        try {
+          localStorage.setItem(`uploaded-notebook:${uploadId}`, cached);
+          localStorage.setItem(`uploaded-notebook-name:${uploadId}`, nb.path);
+          localStorage.setItem(`uploaded-notebook-from-cache:${uploadId}`, '1');
+        } catch (err) {
+          const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+          Notification.error(
+            isQuota
+              ? 'Browser storage is full. Try File → Clear storage to free space.'
+              : 'Could not stage notebook for opening.',
+            { autoClose: 6000 }
+          );
+          return;
+        }
+        addRecentNotebook(nb);
+        if (!await promptIfDirty()) return;
+        const target = new URL(window.location.href);
+        target.search = '';
+        target.searchParams.set('uploaded-notebook', uploadId);
+        target.hash = '';
+        flushVfsCaches();
+        _ckIntentionalNav = true;
+        tracker.forEach(w => { w.context.model.dirty = false; });
+        window.location.href = target.toString();
+        return;
+      }
+    };
+
+    commands.addCommand(Commands.closeNotebook, {
+      label: 'Close notebook',
+      execute: async () => {
+        const panel = tracker.currentWidget;
+
+        // VFS notebook: closing deletes it from browser storage, so we need a
+        // tailored prompt that warns about that.
+        const isVfs = notebookSourceUrl === null
+          && !!panel && !!panel.context.path && panel.context.path !== 'Untitled.ipynb';
+
+        if (isVfs) {
+          const isDirty = panel!.context.model.dirty;
+          const name = panel!.context.path;
+          const body = isDirty
+            ? `"${name}" has unsaved changes. Closing will remove it from browser storage.`
+            : `Closing "${name}" will remove it from browser storage.`;
+
+          const buttons = [
+            Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
+            Dialog.cancelButton({ label: 'Close', className: 'ck-btn' })
+          ];
+
+          const result = await showDialog({ title: 'Close notebook', body, buttons });
+          if (result.button.label === 'Cancel') return;
+
+          // Delete the notebook from VFS to free storage
+          try { await serviceManager.contents.delete(panel!.context.path); } catch { /* ignore */ }
+          try { sessionStorage.removeItem(`vfs-cache:${panel!.context.path}`); } catch { /* ignore */ }
+        } else {
+          if (!await promptIfDirty()) return;
+        }
+
+        if (notebookSourceUrl !== null) {
+          removeRecentNotebook({ url: notebookSourceUrl });
+        } else if (panel) {
+          removeRecentNotebook({ label: panel.context.path });
+        }
+
+        const _nextRecents = getRecentNotebooks();
+        flushVfsCaches();
+        _ckIntentionalNav = true;
+        tracker.forEach(w => { w.context.model.dirty = false; });
+
+        for (const _next of _nextRecents) {
+          if (_next.type === 'vfs' && _next.path) {
+            const _cachedNext = sessionStorage.getItem(`vfs-cache:${_next.path}`);
+            if (!_cachedNext) continue; // stale entry — try next recent
+            const _uid = UUID.uuid4();
+            try {
+              localStorage.setItem(`uploaded-notebook:${_uid}`, _cachedNext);
+              localStorage.setItem(`uploaded-notebook-name:${_uid}`, _next.path);
+              localStorage.setItem(`uploaded-notebook-from-cache:${_uid}`, '1');
+            } catch {
+              continue; // storage full — skip this notebook, try next recent
+            }
+            const _t = new URL(window.location.href);
+            _t.search = '';
+            _t.searchParams.set('uploaded-notebook', _uid);
+            _t.hash = '';
+            window.location.href = _t.toString();
+            return;
+          } else if (_next.type === 'github' && _next.url) {
+            const _t = new URL(window.location.href);
+            _t.search = '';
+            _t.searchParams.set('from', _next.url);
+            _t.hash = '';
+            window.location.href = _t.toString();
+            return;
+          }
+        }
+
+        await createNewNotebook();
+      }
+    });
+
+    commands.addCommand(Commands.clearStorage, {
+      label: 'Clear storage',
+      execute: async () => {
+        const dirtyPaths: string[] = [];
+        tracker.forEach(w => {
+          if (w.context.model.dirty) dirtyPaths.push(w.context.path);
+        });
+
+        const body = dirtyPaths.length > 0
+          ? `This will close all notebooks and delete all stored data from your browser. The following notebooks have unsaved changes that will be lost: "${dirtyPaths.join('", "')}".`
+          : 'This will close all notebooks and delete all stored data from your browser. This cannot be undone.';
+
+        const result = await showDialog({
+          title: 'Clear storage',
+          body,
+          buttons: [
+            Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
+            Dialog.okButton({ label: 'Clear storage', className: 'ck-btn' })
+          ]
+        });
+        if (!result.button.accept) return;
+
+        // Clear localStorage (notebook content + recents)
+        const lsKeys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('uploaded-notebook') || k === 'jupytereverywhere:recent-notebooks')) {
+            lsKeys.push(k);
+          }
+        }
+        lsKeys.forEach(k => localStorage.removeItem(k));
+
+        // Clear sessionStorage (VFS caches + download history)
+        const ssKeys: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && (k.startsWith('vfs-cache:') || k.startsWith('ck-last-downloaded:') || k === 'ck-fsa-notice')) {
+            ssKeys.push(k);
+          }
+        }
+        ssKeys.forEach(k => sessionStorage.removeItem(k));
+
+        _ckIntentionalNav = true;
+        tracker.forEach(w => { w.context.model.dirty = false; });
+        const url = new URL(window.location.href);
+        url.search = '';
+        url.hash = '';
+        window.location.href = url.toString();
+      }
+    });
 
     commands.addCommand(Commands.openFromGitHub, {
       label: 'Open from GitHub',
@@ -514,13 +749,28 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
             void commands.execute(Commands.copyShareLink);
           },
           () => notebookSourceUrl !== null && !tracker.currentWidget?.context.model.dirty,
+          () => {
+            void commands.execute(Commands.saveNotebookCommand);
+          },
+          () => !!tracker.currentWidget?.context.model.dirty,
+          () => {
+            void commands.execute(Commands.closeNotebook);
+          },
+          () => {
+            void commands.execute(Commands.clearStorage);
+          },
           () =>
             getRecentNotebooks().map(nb => ({
               label: nb.label,
               open: () => {
-                void openNotebookFromProvidedURL(nb.url ?? '');
+                void openRecentNotebook(nb);
               },
-              isCurrent: () => notebookSourceUrl === nb.url
+              isCurrent: () => {
+                if (nb.type === 'vfs') {
+                  return tracker.currentWidget?.context.path === nb.path;
+                }
+                return notebookSourceUrl === nb.url;
+              }
             }))
         )
     );

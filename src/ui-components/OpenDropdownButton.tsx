@@ -14,6 +14,10 @@ export class OpenDropdownButton extends ToolbarButton {
     openFromGitHub: () => void,
     copyShareLink: () => void,
     isCopyShareLinkEnabled: () => boolean,
+    saveChanges: () => void,
+    isSaveChangesEnabled: () => boolean,
+    closeNotebook: () => void,
+    clearStorage: () => void,
     getRecentItems: () => Array<{ label: string; open: () => void; isCurrent: () => boolean }>
   ) {
     const commandOpenFile = 'jupytereverywhere:file-open-from-file';
@@ -88,6 +92,38 @@ export class OpenDropdownButton extends ToolbarButton {
       });
     }
 
+    const commandSaveChanges = 'jupytereverywhere:file-save-changes';
+    const commandCloseNotebook = 'jupytereverywhere:file-close-notebook';
+    const commandClearStorage = 'jupytereverywhere:file-clear-storage';
+
+    if (!commands.hasCommand(commandSaveChanges)) {
+      commands.addCommand(commandSaveChanges, {
+        label: 'Save changes in browser…',
+        isEnabled: () => isSaveChangesEnabled(),
+        execute: () => {
+          saveChanges();
+        }
+      });
+    }
+
+    if (!commands.hasCommand(commandCloseNotebook)) {
+      commands.addCommand(commandCloseNotebook, {
+        label: 'Close notebook',
+        execute: () => {
+          closeNotebook();
+        }
+      });
+    }
+
+    if (!commands.hasCommand(commandClearStorage)) {
+      commands.addCommand(commandClearStorage, {
+        label: 'Clear storage',
+        execute: () => {
+          clearStorage();
+        }
+      });
+    }
+
     if (!commands.hasCommand(commandCopyShareLink)) {
       commands.addCommand(commandCopyShareLink, {
         label: 'Copy link to GitHub source',
@@ -135,10 +171,16 @@ export class OpenDropdownButton extends ToolbarButton {
         }
 
         menu.addItem({ type: 'separator' });
+        menu.addItem({ command: commandSaveChanges });
+        menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandDownload });
         menu.addItem({ command: commandDownloadPDF });
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandCopyShareLink });
+        menu.addItem({ type: 'separator' });
+        menu.addItem({ command: commandCloseNotebook });
+        menu.addItem({ type: 'separator' });
+        menu.addItem({ command: commandClearStorage });
 
         const anchor = this.node.getBoundingClientRect();
         menu.open(anchor.left, anchor.bottom);
