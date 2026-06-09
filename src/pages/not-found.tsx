@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
 import { ReactWidget } from '@jupyterlab/apputils';
 import React from 'react';

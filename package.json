@@ -1,20 +1,20 @@
 {
     "name": "jupytereverywhere",
     "version": "1.1.4",
-    "description": "A Jupyter extension for k12 education",
+    "description": "CourseKata Playground — a JupyterLite extension for K-12 education",
     "keywords": [
         "jupyter",
         "jupyterlab",
         "jupyterlab-extension"
     ],
-    "homepage": "",
+    "homepage": "https://play.coursekata.org",
     "bugs": {
-        "url": "https://github.com/JupyterEverywhere/jupyterlite-extension/issues"
+        "url": "https://github.com/coursekata/playground/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
-        "name": "Ivonne Martinez",
-        "email": "ivonne.martinez@skewthescript.org"
+        "name": "CourseKata",
+        "email": "info@coursekata.org"
     },
     "files": [
         "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
@@ -27,7 +27,7 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": "https://github.com/JupyterEverywhere/jupyterlite-extension.git"
+        "url": "https://github.com/coursekata/playground.git"
     },
     "scripts": {
         "build": "jlpm build:lib && jlpm build:labextension:dev",

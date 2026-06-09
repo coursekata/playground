@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { UUID } from '@lumino/coreutils';
 import type { INotebookContent } from '@jupyterlab/nbformat';
 import { Dialog, showDialog, showErrorMessage } from '@jupyterlab/apputils';

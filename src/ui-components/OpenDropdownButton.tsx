@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { CommandRegistry } from '@lumino/commands';
 import { Menu } from '@lumino/widgets';
 import { ToolbarButton } from '@jupyterlab/apputils';

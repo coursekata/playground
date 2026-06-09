@@ -1,8 +1,8 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
 _commit: v4.3.5
 _src_path: https://github.com/jupyterlab/extension-template
-author_email: ivonne.martinez@skewthescript.org
-author_name: Ivonne Martinez
+author_email: info@coursekata.org
+author_name: CourseKata
 data_format: string
 file_extension: ''
 has_binder: true
@@ -11,8 +11,8 @@ kind: frontend
 labextension_name: jupytereverywhere
 mimetype: ''
 mimetype_name: ''
-project_short_description: A Jupyter extension for k12 education
+project_short_description: CourseKata Playground — a JupyterLite extension for K-12 education
 python_name: jupytereverywhere
-repository: https://github.com/JupyterEverywhere/jupyterlite-extension
+repository: https://github.com/coursekata/playground
 test: true
 viewer_name: ''

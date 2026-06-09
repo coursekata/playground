@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 export namespace Commands {
   export const openNotFound = 'jupytereverywhere:open-not-found';
   export const routeNotFound = 'jupytereverywhere:not-found-route';

@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { placeholder } from '@codemirror/view';
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
 import { EditorExtensionRegistry, IEditorExtensionRegistry } from '@jupyterlab/codemirror';

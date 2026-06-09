@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 import type { INotebookContent, MultilineString } from '@jupyterlab/nbformat';
 
 const toText = (src?: MultilineString): string => (Array.isArray(src) ? src.join('') : (src ?? ''));

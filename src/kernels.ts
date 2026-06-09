@@ -1,3 +1,6 @@
+// Copyright (c) CourseKata
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { NotebookPanel } from '@jupyterlab/notebook';
 
 export const KERNEL_URL_TO_NAME: Record<string, string> = {
