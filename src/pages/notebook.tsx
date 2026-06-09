@@ -12,7 +12,8 @@ import {
   ISessionContext,
   Notification,
   createToolbarFactory,
-  showDialog
+  showDialog,
+  showErrorMessage
 } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { MessageLoop } from '@lumino/messaging';
@@ -21,8 +22,21 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ITranslator } from '@jupyterlab/translation';
 import { Commands } from '../commands';
 import { KERNEL_URL_TO_NAME, KERNEL_DISPLAY_NAMES } from '../kernels';
-import { handleNotebookUpload, openNotebookContent } from '../upload';
+import { detectNotebookLanguage, handleNotebookUpload, openNotebookContent } from '../upload';
+import {
+  getCurrentFileHandle,
+  setCurrentFileHandle,
+  isFileSystemAccessSupported,
+  pickNotebookFile,
+  pickSaveLocation,
+  saveToHandle,
+  storeHandleForUpload,
+  retrieveHandleForUpload,
+  storeRecentHandle,
+  retrieveRecentHandle
+} from '../filesystem';
 import { RecentNotebook, addRecentNotebook, getRecentNotebooks, removeRecentNotebook } from '../recents';
+import { showSavedToast } from '../notebook-utils';
 
 function mapLanguageToKernel(content: INotebookContent): string {
   const rawLang =
@@ -120,6 +134,19 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     const { commands, serviceManager } = app;
     const { contents } = serviceManager;
 
+    // Snapshot all open notebooks that have a VFS cache entry into sessionStorage.
+    // Call this before any page redirect so reopening from recents restores edits.
+    const flushVfsCaches = () => {
+      tracker.forEach(w => {
+        const path = w.context.path;
+        if (sessionStorage.getItem(`vfs-cache:${path}`) !== null) {
+          try {
+            sessionStorage.setItem(`vfs-cache:${path}`, JSON.stringify(w.context.model.toJSON()));
+          } catch { /* ignore quota errors */ }
+        }
+      });
+    };
+
     (() => {
       const s = document.createElement('style');
       s.textContent = '.jp-Dialog-button.ck-btn.jp-mod-accept{background:#1a3a5c!important;color:#fff!important;border-color:#1a3a5c!important;text-decoration:none!important;}.jp-Dialog-button.ck-btn.jp-mod-accept *{text-decoration:none!important;}.jp-Dialog-button.ck-btn.jp-mod-reject{background:#fff!important;color:#333!important;border:1px solid #ccc!important;text-decoration:none!important;}.je-GitHubBrowser-browse-btn{background:#1a3a5c!important;color:#fff!important;border-color:#1a3a5c!important;}';
@@ -143,6 +170,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     const uploadedNotebookId = params.get('uploaded-notebook');
     const fromUrl = params.get('from');
 
+
     let notebookSourceUrl: string | null = null;
 
     window.addEventListener('beforeunload', (e) => {
@@ -152,23 +180,16 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    // Snapshot all open notebooks that have a VFS cache entry into sessionStorage.
-    // Call this before any page redirect so reopening from recents restores edits.
-    const flushVfsCaches = () => {
-      tracker.forEach(w => {
-        const path = w.context.path;
-        if (sessionStorage.getItem(`vfs-cache:${path}`) !== null) {
-          try {
-            sessionStorage.setItem(`vfs-cache:${path}`, JSON.stringify(w.context.model.toJSON()));
-          } catch { /* ignore quota errors */ }
-        }
-      });
-    };
+    const fsaSupported = isFileSystemAccessSupported();
 
     // Returns true if it's safe to navigate away (no unsaved changes, or user resolved them).
+    // Handles all three cases: Chrome+handle → Save, Chrome+no-handle → Save as file, Safari → Save in browser.
     const promptIfDirty = async (): Promise<boolean> => {
       const currentWidget = tracker.currentWidget;
       if (!currentWidget || !currentWidget.context.model.dirty) return true;
+
+      const hasHandle = !!getCurrentFileHandle();
+      const saveLabel = hasHandle ? 'Save' : fsaSupported ? 'Save as file' : 'Save in browser';
 
       const result = await showDialog({
         title: 'Unsaved Changes',
@@ -176,13 +197,17 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         buttons: [
           Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
           Dialog.cancelButton({ label: 'Discard', className: 'ck-btn' }),
-          Dialog.okButton({ label: 'Save in browser', className: 'ck-btn' })
+          Dialog.okButton({ label: saveLabel, className: 'ck-btn' })
         ]
       });
 
       if (result.button.label === 'Cancel') return false;
       if (result.button.accept) {
-        await commands.execute(Commands.saveNotebookCommand);
+        if (hasHandle || !fsaSupported) {
+          await commands.execute(Commands.saveNotebookCommand);
+        } else {
+          await commands.execute(Commands.saveToFile); // Chrome, no handle → file picker
+        }
       }
       return true;
     };
@@ -194,7 +219,6 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       url.searchParams.delete('from');
       url.searchParams.delete('tab');
       url.searchParams.set('kernel', kernelParam);
-      flushVfsCaches();
       _ckIntentionalNav = true;
       tracker.forEach(w => { w.context.model.dirty = false; });
       window.location.href = url.toString();
@@ -202,6 +226,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
 
     const createNewNotebook = async (): Promise<void> => {
       notebookSourceUrl = null;
+      setCurrentFileHandle(null);
       try {
         const currentParams = new URLSearchParams(window.location.search);
         const desiredKernelParam = currentParams.get('kernel') || 'r';
@@ -270,9 +295,11 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         window.history.replaceState({}, '', currentUrl.toString());
 
         notebookSourceUrl = sourceUrl;
+        const fileHandle = await retrieveHandleForUpload(id);
+        setCurrentFileHandle(fileHandle);
         const fromCache = localStorage.getItem(`uploaded-notebook-from-cache:${id}`) === '1';
         localStorage.removeItem(`uploaded-notebook-from-cache:${id}`);
-        if (!sourceUrl) {
+        if (!fileHandle && !sourceUrl) {
           try {
             sessionStorage.setItem(`vfs-cache:${filename}`, JSON.stringify(content));
           } catch { /* ignore quota errors */ }
@@ -350,19 +377,79 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
 
     const openLocalFile = async (): Promise<void> => {
       if (!await promptIfDirty()) return;
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.ipynb,application/json';
-      input.onchange = async () => {
-        const file = input.files?.[0];
-        if (file) {
-          flushVfsCaches();
-          _ckIntentionalNav = true;
-          tracker.forEach(w => { w.context.model.dirty = false; });
-          await handleNotebookUpload(file);
-        }
-      };
-      input.click();
+      if (!isFileSystemAccessSupported()) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.ipynb,application/json';
+        input.onchange = async () => {
+          const file = input.files?.[0];
+          if (file) {
+            flushVfsCaches();
+            _ckIntentionalNav = true;
+            tracker.forEach(w => { w.context.model.dirty = false; });
+            await handleNotebookUpload(file);
+          }
+        };
+        input.click();
+        return;
+      }
+
+      let picked: { handle: FileSystemFileHandle; text: string } | null;
+      try {
+        picked = await pickNotebookFile();
+      } catch (err) {
+        await showErrorMessage('Failed to open file', err instanceof Error ? err.message : String(err));
+        return;
+      }
+      if (!picked) {
+        return;
+      }
+
+      const { handle, text } = picked;
+      let parsed: INotebookContent;
+      try {
+        parsed = JSON.parse(text) as INotebookContent;
+      } catch {
+        await showErrorMessage('Invalid notebook', 'The selected file is not a valid notebook.');
+        return;
+      }
+
+      if (!detectNotebookLanguage(parsed)) {
+        await showErrorMessage(
+          'Please open a valid notebook',
+          'Only Python and R notebooks are supported.'
+        );
+        return;
+      }
+
+      const uploadId = UUID.uuid4();
+      try {
+        localStorage.setItem(`uploaded-notebook:${uploadId}`, text);
+        localStorage.setItem(`uploaded-notebook-name:${uploadId}`, handle.name);
+      } catch (err) {
+        const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+        Notification.error(
+          isQuota
+            ? 'Browser storage is full. Try File → Clear storage to free space.'
+            : 'Could not stage notebook for opening.',
+          { autoClose: 6000 }
+        );
+        return;
+      }
+      await storeHandleForUpload(uploadId, handle);
+
+      const recentKey = UUID.uuid4();
+      await storeRecentHandle(recentKey, handle);
+      addRecentNotebook({ label: handle.name, type: 'file', handleKey: recentKey });
+
+      const target = new URL(window.location.href);
+      target.search = '';
+      target.searchParams.set('uploaded-notebook', uploadId);
+      target.hash = '';
+      flushVfsCaches();
+      _ckIntentionalNav = true;
+      tracker.forEach(w => { w.context.model.dirty = false; });
+      window.location.href = target.toString();
     };
 
     const openRecentNotebook = async (nb: RecentNotebook): Promise<void> => {
@@ -417,16 +504,143 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         window.location.href = target.toString();
         return;
       }
+      if (nb.type === 'file' && nb.handleKey) {
+        const handle = await retrieveRecentHandle(nb.handleKey);
+        if (!handle) {
+          Notification.warning('Could not find the saved file. Please use "Open from file" instead.', {
+            autoClose: 4000
+          });
+          return;
+        }
+        try {
+          type FSAHandle = FileSystemFileHandle & {
+            queryPermission(o: { mode: string }): Promise<PermissionState>;
+            requestPermission(o: { mode: string }): Promise<PermissionState>;
+          };
+          const fsa = handle as FSAHandle;
+
+          // Check fast path first — activating an already-open widget needs no disk access
+          let existingId: string | null = null;
+          const trackerPaths: string[] = [];
+          tracker.forEach(w => {
+            trackerPaths.push(`${w.context.path}(dirty=${w.context.model.dirty})`);
+            if (!existingId && w.context.path === handle.name) {
+              existingId = w.id;
+            }
+          });
+          if (existingId) {
+            tracker.forEach(w => { w.context.model.dirty = false; });
+            app.shell.activateById(existingId);
+            notebookSourceUrl = null;
+            setCurrentFileHandle(handle);
+            addRecentNotebook(nb);
+            return;
+          }
+
+          // Slow path: need to read file from disk — only read permission required here;
+          // write permission is requested lazily when the user clicks "Save to file"
+          let perm = await fsa.queryPermission({ mode: 'read' });
+          if (perm !== 'granted') {
+            perm = await fsa.requestPermission({ mode: 'read' });
+          }
+          if (perm !== 'granted') {
+            Notification.warning('Permission denied. Please use "Open from file" instead.', {
+              autoClose: 4000
+            });
+            return;
+          }
+
+          // File is not currently open. Use the same redirect flow as "Open from file":
+          // writing directly to VFS + docmanager:open causes a spurious "save changes?"
+          // dialog because the fileChanged event from contents.save races with the new
+          // context created by docmanager:open. The redirect flow avoids this entirely.
+          const diskFile = await handle.getFile();
+          const text = await diskFile.text();
+          const uploadId = UUID.uuid4();
+          try {
+            localStorage.setItem(`uploaded-notebook:${uploadId}`, text);
+            localStorage.setItem(`uploaded-notebook-name:${uploadId}`, handle.name);
+          } catch (err) {
+            const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+            Notification.error(
+              isQuota
+                ? 'Browser storage is full. Try File → Clear storage to free space.'
+                : 'Could not stage notebook for opening.',
+              { autoClose: 6000 }
+            );
+            return;
+          }
+          await storeHandleForUpload(uploadId, handle);
+          addRecentNotebook(nb);
+
+          const target = new URL(window.location.href);
+          target.search = '';
+          target.searchParams.set('uploaded-notebook', uploadId);
+          target.hash = '';
+
+          if (!await promptIfDirty()) return;
+
+          flushVfsCaches();
+          _ckIntentionalNav = true;
+          tracker.forEach(w => { w.context.model.dirty = false; });
+          window.location.href = target.toString();
+        } catch {
+          Notification.warning('Could not open the file. Please use "Open from file" instead.', {
+            autoClose: 4000
+          });
+        }
+      }
     };
+
+    commands.addCommand(Commands.saveToFile, {
+      label: 'Save as file…',
+      execute: async () => {
+        const panel = tracker.currentWidget;
+        if (!panel) {
+          return;
+        }
+
+        const content = panel.context.model.toJSON() as INotebookContent;
+        const text = JSON.stringify(content, null, 2);
+
+        let suggestedName =
+          panel.context.path && panel.context.path !== 'Untitled.ipynb'
+            ? panel.context.path
+            : 'notebook.ipynb';
+        if (notebookSourceUrl !== null) {
+          suggestedName = suggestedName.replace(/\.ipynb$/i, '_copy.ipynb');
+        }
+        const handle = await pickSaveLocation(suggestedName);
+        if (!handle) {
+          return;
+        }
+
+        try {
+          await saveToHandle(handle, text);
+          setCurrentFileHandle(handle);
+          notebookSourceUrl = null;
+          const recentKey = UUID.uuid4();
+          await storeRecentHandle(recentKey, handle);
+          addRecentNotebook({ label: handle.name, type: 'file', handleKey: recentKey });
+          await panel.context.save();
+          showSavedToast();
+        } catch (err) {
+          console.error('Failed to save to file:', err);
+          Notification.warning('Could not save to file.', { autoClose: 4000 });
+        }
+      }
+    });
 
     commands.addCommand(Commands.closeNotebook, {
       label: 'Close notebook',
       execute: async () => {
         const panel = tracker.currentWidget;
+        const handle = getCurrentFileHandle();
+        const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
 
         // VFS notebook: closing deletes it from browser storage, so we need a
-        // tailored prompt that warns about that.
-        const isVfs = notebookSourceUrl === null
+        // tailored prompt that warns about that and (on Chrome) offers Save as file.
+        const isVfs = !handle && notebookSourceUrl === null
           && !!panel && !!panel.context.path && panel.context.path !== 'Untitled.ipynb';
 
         if (isVfs) {
@@ -438,11 +652,18 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
 
           const buttons = [
             Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }),
-            Dialog.cancelButton({ label: 'Close', className: 'ck-btn' })
+            Dialog.cancelButton({ label: 'Close', className: 'ck-btn' }),
+            ...(canSaveToFile ? [Dialog.okButton({ label: 'Save as file', className: 'ck-btn' })] : [])
           ];
 
           const result = await showDialog({ title: 'Close notebook', body, buttons });
-          if (result.button.label === 'Cancel') return;
+          if (result.button.label === 'Cancel' || (!result.button.accept && result.button.label !== 'Close')) return;
+
+          if (result.button.label === 'Save as file') {
+            await commands.execute(Commands.saveToFile);
+            // If user cancelled the file picker, file handle is still null — abort close
+            if (!getCurrentFileHandle()) return;
+          }
 
           // Delete the notebook from VFS to free storage
           try { await serviceManager.contents.delete(panel!.context.path); } catch { /* ignore */ }
@@ -451,7 +672,10 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           if (!await promptIfDirty()) return;
         }
 
-        if (notebookSourceUrl !== null) {
+        const currentHandle = getCurrentFileHandle();
+        if (currentHandle) {
+          removeRecentNotebook({ label: currentHandle.name });
+        } else if (notebookSourceUrl !== null) {
           removeRecentNotebook({ url: notebookSourceUrl });
         } else if (panel) {
           removeRecentNotebook({ label: panel.context.path });
@@ -486,6 +710,9 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
             _t.searchParams.set('from', _next.url);
             _t.hash = '';
             window.location.href = _t.toString();
+            return;
+          } else if (_next.type === 'file') {
+            await openRecentNotebook(_next);
             return;
           }
         }
@@ -535,6 +762,10 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           }
         }
         ssKeys.forEach(k => sessionStorage.removeItem(k));
+
+        // Clear IndexedDB (file handles)
+        indexedDB.deleteDatabase('jupytereverywhere-fs');
+        setCurrentFileHandle(null);
 
         _ckIntentionalNav = true;
         tracker.forEach(w => { w.context.model.dirty = false; });
@@ -725,7 +956,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         new OpenDropdownButton(
           commands,
           () => {
-            openLocalFile();
+            void openLocalFile();
           },
           () => {
             void openNotebookFromURL();
@@ -754,6 +985,9 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
           },
           () => !!tracker.currentWidget?.context.model.dirty,
           () => {
+            void commands.execute(Commands.saveToFile);
+          },
+          () => {
             void commands.execute(Commands.closeNotebook);
           },
           () => {
@@ -766,10 +1000,14 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
                 void openRecentNotebook(nb);
               },
               isCurrent: () => {
-                if (nb.type === 'vfs') {
-                  return tracker.currentWidget?.context.path === nb.path;
+                const handle = getCurrentFileHandle();
+                if (nb.type === 'file') {
+                  return handle !== null && handle.name === nb.label;
                 }
-                return notebookSourceUrl === nb.url;
+                if (nb.type === 'vfs') {
+                  return !handle && tracker.currentWidget?.context.path === nb.path;
+                }
+                return handle === null && notebookSourceUrl === nb.url;
               }
             }))
         )

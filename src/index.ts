@@ -10,6 +10,7 @@ import routesPlugin from './routes';
 import notFoundPlugin from './pages/not-found';
 import { Commands } from './commands';
 import { notebookPlugin } from './pages/notebook';
+import { getCurrentFileHandle, saveToHandle, isFileSystemAccessSupported } from './filesystem';
 import { generateDefaultNotebookName, showSavedToast } from './notebook-utils';
 import { enforceVfsLimit } from './recents';
 
@@ -146,6 +147,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
+        const fileHandle = getCurrentFileHandle();
+        if (fileHandle) {
+          if (!panel.context.model.dirty) {
+            return;
+          }
+          const content = panel.context.model.toJSON() as INotebookContent;
+          const text = JSON.stringify(content, null, 2);
+          try {
+            await saveToHandle(fileHandle, text);
+            await panel.context.save();
+            showSavedToast();
+          } catch (err) {
+            console.error('Failed to save to file handle:', err);
+            Notification.warning('Could not save to file.', { autoClose: 4000 });
+          }
+          return;
+        }
+
+        if (isFileSystemAccessSupported()) {
+          // Chrome/Edge without a file handle yet — show file picker
+          await commands.execute(Commands.saveToFile);
+          return;
+        }
+
         // Safari/Firefox — save to browser VFS.
         // Untitled notebooks get a name dialog first; all others save silently.
         const isUntitled = !panel.context.path || panel.context.path === 'Untitled.ipynb';
@@ -203,7 +228,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
             Notification.error(
               canSaveToFile
-                ? 'Browser storage is full. Try File → Clear storage, or use "Save as file" to save to disk.'
+                ? 'Browser storage is full. Try File → Clear storage, or use “Save as file” to save to disk.'
                 : 'Browser storage is full. Try File → Clear storage to free space.',
               { autoClose: 8000 }
             );
