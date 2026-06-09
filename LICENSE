@@ -28,13 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
 
-TRADEMARKS
+TRADEMARKS AND BRAND ASSETS
 
 "CourseKata", "Skew The Script", "Jupyter Everywhere", "CourseKata Playground",
-and associated names, logos, and branding (including the visual theme of this
-application) are trademarks of their respective owners. The BSD 3-Clause License
-above grants rights to the software only and does not grant any right to use
-these marks. All trademark rights are reserved.
+and associated names, logos, slogans, and branding (including the visual theme of
+this application) are trademarks of their respective owners. The BSD 3-Clause
+License above applies to the software source code only. It does not grant any
+right to use these marks, and it does not license the CourseKata or Jupyter
+Everywhere logo and brand image assets included in this repository (for example,
+the logo and mark image files under "style/" and "static/"). All rights in the
+marks and brand assets — including any copyright in those logo and brand image
+files — are reserved by their respective owners.
 
 Third-party open-source components distributed with this software are licensed
 under their own terms; those licenses and notices are available in the running
