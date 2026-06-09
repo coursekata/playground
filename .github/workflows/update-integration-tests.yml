@@ -75,7 +75,7 @@ jobs:
           fi
 
       - name: Base Setup
-        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@affc83be6020d529b9368cd4d63e467877606600 # v1
+        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@95d85449e4f3f352e261221f6529f8ed307f5728 # v1
 
       - name: Install micromamba
         uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
@@ -102,7 +102,7 @@ jobs:
           jlpm install
           jlpm build:all
 
-      - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots@affc83be6020d529b9368cd4d63e467877606600 # v1
+      - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots@95d85449e4f3f352e261221f6529f8ed307f5728 # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Playwright knows how to start JupyterLab server
