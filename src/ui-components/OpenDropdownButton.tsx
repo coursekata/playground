@@ -1,6 +1,7 @@
 import { CommandRegistry } from '@lumino/commands';
 import { Menu } from '@lumino/widgets';
 import { ToolbarButton } from '@jupyterlab/apputils';
+import { getCurrentFileHandle } from '../filesystem';
 
 export class OpenDropdownButton extends ToolbarButton {
   constructor(
@@ -16,10 +17,13 @@ export class OpenDropdownButton extends ToolbarButton {
     isCopyShareLinkEnabled: () => boolean,
     saveChanges: () => void,
     isSaveChangesEnabled: () => boolean,
+    saveAs: () => void,
     closeNotebook: () => void,
     clearStorage: () => void,
     getRecentItems: () => Array<{ label: string; open: () => void; isCurrent: () => boolean }>
   ) {
+    const canSaveToFile = typeof (window as any).showSaveFilePicker === 'function';
+
     const commandOpenFile = 'jupytereverywhere:file-open-from-file';
     const commandOpenUrl = 'jupytereverywhere:file-open-from-url';
     const commandNewR = 'jupytereverywhere:file-new-r-notebook';
@@ -28,6 +32,10 @@ export class OpenDropdownButton extends ToolbarButton {
     const commandDownloadPDF = 'jupytereverywhere:file-download-pdf';
     const commandOpenGitHub = 'jupytereverywhere:file-open-from-github';
     const commandCopyShareLink = 'jupytereverywhere:file-copy-share-link';
+    const commandSaveChanges = 'jupytereverywhere:file-save-changes';
+    const commandSaveAs = 'jupytereverywhere:file-save-as';
+    const commandCloseNotebook = 'jupytereverywhere:file-close-notebook';
+    const commandClearStorage = 'jupytereverywhere:file-clear-storage';
 
     if (!commands.hasCommand(commandOpenFile)) {
       commands.addCommand(commandOpenFile, {
@@ -68,6 +76,7 @@ export class OpenDropdownButton extends ToolbarButton {
     if (!commands.hasCommand(commandDownload)) {
       commands.addCommand(commandDownload, {
         label: 'Download notebook',
+        isVisible: () => !canSaveToFile,
         execute: () => {
           downloadNotebook();
         }
@@ -92,16 +101,22 @@ export class OpenDropdownButton extends ToolbarButton {
       });
     }
 
-    const commandSaveChanges = 'jupytereverywhere:file-save-changes';
-    const commandCloseNotebook = 'jupytereverywhere:file-close-notebook';
-    const commandClearStorage = 'jupytereverywhere:file-clear-storage';
-
     if (!commands.hasCommand(commandSaveChanges)) {
       commands.addCommand(commandSaveChanges, {
-        label: 'Save changes in browser…',
+        label: canSaveToFile ? 'Save changes' : 'Save changes in browser…',
         isEnabled: () => isSaveChangesEnabled(),
         execute: () => {
           saveChanges();
+        }
+      });
+    }
+
+    if (!commands.hasCommand(commandSaveAs)) {
+      commands.addCommand(commandSaveAs, {
+        label: () => getCurrentFileHandle() !== null ? 'Save as…' : 'Save as file…',
+        isVisible: () => canSaveToFile,
+        execute: () => {
+          saveAs();
         }
       });
     }
@@ -172,6 +187,7 @@ export class OpenDropdownButton extends ToolbarButton {
 
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandSaveChanges });
+        menu.addItem({ command: commandSaveAs });
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandDownload });
         menu.addItem({ command: commandDownloadPDF });

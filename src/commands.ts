@@ -8,6 +8,7 @@ export namespace Commands {
   export const restartMemoryAndRunAllCommand = 'jupytereverywhere:restart-and-run-all';
   export const openFromGitHub = 'jupytereverywhere:open-from-github';
   export const copyShareLink = 'jupytereverywhere:copy-share-link';
+  export const saveToFile = 'jupytereverywhere:save-to-file';
   export const closeNotebook = 'jupytereverywhere:close-notebook';
   export const clearStorage = 'jupytereverywhere:clear-storage';
 }
