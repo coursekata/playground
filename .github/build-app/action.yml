@@ -59,6 +59,7 @@ runs:
         name: lite-app-${{ inputs.mode }}
         path: ./dist
         if-no-files-found: error
+        retention-days: 5
 
     - name: Upload GitHub Pages artifact for production mode
       if: inputs.mode == 'prod'

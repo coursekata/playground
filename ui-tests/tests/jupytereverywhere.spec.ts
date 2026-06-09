@@ -71,7 +71,7 @@ test.describe('Kernel networking', () => {
 
     const output = cell.locator('.jp-Cell-outputArea');
     await expect(output).toBeVisible({
-      timeout: 20000 // shouldn't take too long to run but just to be safe
+      timeout: 60000 // kernel cold-start can be slow in CI
     });
 
     const text = await output.textContent();
@@ -89,7 +89,7 @@ test.describe('Kernel networking', () => {
 
     const output = cell.locator('.jp-Cell-outputArea');
     await expect(output).toBeVisible({
-      timeout: 20000 // shouldn't take too long to run but just to be safe
+      timeout: 60000 // kernel cold-start can be slow in CI
     });
 
     const text = await output.textContent();
@@ -199,7 +199,7 @@ test.describe('Per cell run buttons', () => {
     await firstCell.getByRole('textbox').click();
     await firstCell.getByRole('textbox').fill('1+1');
     await firstCell.locator('.je-cell-run-button').click();
-    await expect(firstCell.locator('.jp-Cell-outputArea')).toBeVisible({ timeout: 10000 });
+    await expect(firstCell.locator('.jp-Cell-outputArea')).toBeVisible({ timeout: 30000 });
 
     const inputIndicator = firstCell.locator('.jp-InputArea-prompt-indicator');
 

@@ -1,6 +1,7 @@
 BSD 3-Clause License
 
-Copyright (c) 2024 CourseKata and Skew The Script
+Copyright (c) 2024-2026, CourseKata and Skew The Script
+All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -24,3 +25,21 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---
+
+TRADEMARKS AND BRAND ASSETS
+
+"CourseKata", "Skew The Script", "Jupyter Everywhere", "CourseKata Playground",
+and associated names, logos, slogans, and branding (including the visual theme of
+this application) are trademarks of their respective owners. The BSD 3-Clause
+License above applies to the software source code only. It does not grant any
+right to use these marks, and it does not license the CourseKata or Jupyter
+Everywhere logo and brand image assets included in this repository (for example,
+the logo and mark image files under "style/" and "static/"). All rights in the
+marks and brand assets — including any copyright in those logo and brand image
+files — are reserved by their respective owners.
+
+Third-party open-source components distributed with this software are licensed
+under their own terms; those licenses and notices are available in the running
+application (see the "Licenses" link in the footer).

@@ -573,3 +573,41 @@ jp-button[aria-label='Download'] svg {
     opacity: 0.45;
   }
 }
+
+/* Compliance footer (legal/licensing links), added to the shell bottom area. */
+.ck-Footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 5px 16px;
+  font-family: var(--je-font-family);
+  font-size: 12px;
+  color: var(--jp-ui-font-color2);
+  background: var(--jp-layout-color1);
+  border-top: 1px solid var(--jp-border-color2);
+}
+
+.ck-Footer-copyright {
+  white-space: nowrap;
+}
+
+.ck-Footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.ck-Footer-link {
+  color: var(--jp-ui-font-color2);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ck-Footer-link:hover {
+  color: var(--je-slate-blue);
+  text-decoration: underline;
+}

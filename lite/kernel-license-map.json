@@ -1,0 +1,139 @@
+{
+  "_comment": "Source of truth for the WebAssembly kernel third-party notices (R + Python), which the in-app JupyterLab Licenses panel does NOT cover. Rendered to dist/licenses/index.html by scripts/generate-licenses.mjs at build time. R packages here are cross-checked against lite/xeus-environment.yml; add an entry when you add a package to the environment.",
+  "licenseTexts": {
+    "GPL-3.0": "license-texts/GPL-3.0.txt",
+    "GPL-2.0": "license-texts/GPL-2.0.txt",
+    "AGPL-3.0": "license-texts/AGPL-3.0.txt",
+    "MPL-2.0": "license-texts/MPL-2.0.txt"
+  },
+  "groups": [
+    {
+      "id": "r-kernel",
+      "title": "R kernel (xeus-r, compiled to WebAssembly)",
+      "description": "These components run the R notebook environment. They are compiled to WebAssembly and delivered to your browser. Components under the GPL and AGPL entitle you to their corresponding source code.",
+      "components": [
+        {
+          "name": "R (language and interpreter)",
+          "package": "r-base",
+          "license": "GPL-2.0-only OR GPL-3.0-only",
+          "texts": ["GPL-2.0", "GPL-3.0"],
+          "source": "https://www.r-project.org/",
+          "copyright": "Copyright (c) The R Core Team and contributors"
+        },
+        {
+          "name": "xeus-r",
+          "package": "xeus-r",
+          "license": "GPL-3.0-only",
+          "texts": ["GPL-3.0"],
+          "source": "https://github.com/jupyter-xeus/xeus-r",
+          "copyright": "Copyright (c) QuantStack and contributors"
+        },
+        {
+          "name": "coursekata",
+          "package": "r-coursekata",
+          "license": "AGPL-3.0-or-later",
+          "texts": ["AGPL-3.0"],
+          "source": "https://github.com/coursekata/coursekata-r",
+          "copyright": "Copyright (c) CourseKata",
+          "note": "Maintained by CourseKata. Currently published under AGPL-3.0; a relicense to MIT is planned but is reflected here only once the published package changes."
+        },
+        {
+          "name": "neuralnet",
+          "package": "r-neuralnet",
+          "license": "GPL-2.0-or-later",
+          "texts": ["GPL-2.0"],
+          "source": "https://CRAN.R-project.org/package=neuralnet",
+          "copyright": "Copyright (c) Stefan Fritsch, Frauke Guenther, Marc Suling, Sebastian M. Mueller, and contributors"
+        },
+        {
+          "name": "ggplot2",
+          "package": "r-ggplot2",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/ggplot2",
+          "copyright": "Copyright (c) ggplot2 authors (Hadley Wickham, Winston Chang, and contributors)"
+        },
+        {
+          "name": "dplyr",
+          "package": "r-dplyr",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/dplyr",
+          "copyright": "Copyright (c) dplyr authors and contributors"
+        },
+        {
+          "name": "tidyr",
+          "package": "r-tidyr",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/tidyr",
+          "copyright": "Copyright (c) tidyr authors and contributors"
+        },
+        {
+          "name": "readr",
+          "package": "r-readr",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/readr",
+          "copyright": "Copyright (c) readr authors and contributors"
+        },
+        {
+          "name": "purrr",
+          "package": "r-purrr",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/purrr",
+          "copyright": "Copyright (c) purrr authors and contributors"
+        },
+        {
+          "name": "tibble",
+          "package": "r-tibble",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/tibble",
+          "copyright": "Copyright (c) tibble authors and contributors"
+        },
+        {
+          "name": "stringr",
+          "package": "r-stringr",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/stringr",
+          "copyright": "Copyright (c) stringr authors and contributors"
+        },
+        {
+          "name": "forcats",
+          "package": "r-forcats",
+          "license": "MIT",
+          "texts": [],
+          "source": "https://github.com/tidyverse/forcats",
+          "copyright": "Copyright (c) forcats authors and contributors"
+        }
+      ]
+    },
+    {
+      "id": "python-kernel",
+      "title": "Python kernel (Pyodide, compiled to WebAssembly)",
+      "description": "These components run the Python notebook environment. They are compiled to WebAssembly and delivered to your browser.",
+      "components": [
+        {
+          "name": "Pyodide",
+          "package": "pyodide",
+          "license": "MPL-2.0",
+          "texts": ["MPL-2.0"],
+          "source": "https://github.com/pyodide/pyodide",
+          "copyright": "Copyright (c) Pyodide contributors"
+        },
+        {
+          "name": "CPython (Python language and interpreter)",
+          "package": "cpython",
+          "license": "PSF-2.0",
+          "texts": [],
+          "source": "https://docs.python.org/3/license.html",
+          "copyright": "Copyright (c) Python Software Foundation",
+          "note": "Distributed under the PSF License Agreement. Full text: https://docs.python.org/3/license.html"
+        }
+      ]
+    }
+  ]
+}
