@@ -40,10 +40,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.26.9":
+"@babel/runtime@npm:^7.12.5":
   version: 7.28.3
   resolution: "@babel/runtime@npm:7.28.3"
   checksum: dd22662b9e02b6e66cfb061d6f9730eb0aa3b3a390a7bd70fe9a64116d86a3704df6d54ab978cb4acc13b58dbf63a3d7dd4616b0b87030eb14a22835e0aa602d
+  languageName: node
+  linkType: hard
+
+"@babel/runtime@npm:^7.28.6":
+  version: 7.29.7
+  resolution: "@babel/runtime@npm:7.29.7"
+  checksum: bc311855c6dbf5356030979584ca0f8b6cee39fe058175b02e85a73e246fc76ae30248b0d40e70c2652101faeb43279468ed2d086a670673eb9783c1fee1df2b
   languageName: node
   linkType: hard
 
@@ -4297,7 +4304,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dompurify@npm:^3.2.4, dompurify@npm:^3.2.5":
+"dompurify@npm:^3.2.5":
   version: 3.2.6
   resolution: "dompurify@npm:3.2.6"
   dependencies:
@@ -4306,6 +4313,18 @@ __metadata:
     "@types/trusted-types":
       optional: true
   checksum: 4d002997dbae13f6bdf0e6be014384129c83b1ee8cd3fca9d96f95b9142d1e96256924466a2fc25e7ffb6ede54290e5c4a7d1bd10f9b14cfa07928dd799c3b42
+  languageName: node
+  linkType: hard
+
+"dompurify@npm:^3.3.1":
+  version: 3.4.8
+  resolution: "dompurify@npm:3.4.8"
+  dependencies:
+    "@types/trusted-types": ^2.0.7
+  dependenciesMeta:
+    "@types/trusted-types":
+      optional: true
+  checksum: 77775a7a22a40d6b169ee9dc53c15e48882c88b1c26b634bd10cb804f76328277893791f08a6339105c67e23c205c12fd931d8d986d2b8c15332bf2edcd3c948
   languageName: node
   linkType: hard
 
@@ -6203,14 +6222,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jspdf@npm:^3.0.3":
-  version: 3.0.3
-  resolution: "jspdf@npm:3.0.3"
+"jspdf@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "jspdf@npm:4.2.1"
   dependencies:
-    "@babel/runtime": ^7.26.9
+    "@babel/runtime": ^7.28.6
     canvg: ^3.0.11
     core-js: ^3.6.0
-    dompurify: ^3.2.4
+    dompurify: ^3.3.1
     fast-png: ^6.2.0
     fflate: ^0.8.1
     html2canvas: ^1.0.0-rc.5
@@ -6223,7 +6242,7 @@ __metadata:
       optional: true
     html2canvas:
       optional: true
-  checksum: e120e2919753d5c943400549ca6823d0d67974a34681a8e91f23561186a2caee4196d2d07c5491721a6638e5a8bb54e2908722393ea5213f663544356c473fab
+  checksum: 43bee0cdeca23ee256ba4aeef6c96b16558ee280e6b6763f769c9c325688ed76b5306510285a6209138f3ccee2a4ca55c4ff64ec979c04b02043c12a2633efe6
   languageName: node
   linkType: hard
 
@@ -6262,7 +6281,7 @@ __metadata:
     eslint: ^8.36.0
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
-    jspdf: ^3.0.3
+    jspdf: ^4.2.1
     npm-run-all: ^4.1.5
     prettier: ^3.0.0
     react: ^18.2.0
