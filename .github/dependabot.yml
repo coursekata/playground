@@ -1,6 +1,16 @@
 version: 2
+
+# Policy: group every ecosystem into a single weekly PR and ignore nothing.
+# JupyterLab follows semver for the 4.x line, so minor/patch bumps of the
+# framework (and its related @jupyterlite / pip runtime packages) are safe to
+# see and are validated end-to-end by CI (build wheel -> build the JupyterLite
+# app from it -> Playwright integration tests -> deploy on main) before anything
+# is merged. Grouping makes a framework bump arrive as ONE reviewable PR rather
+# than dozens. For npm<->pip coherence, review the npm and pip group PRs from
+# the same weekly batch together.
+
 updates:
-  # JavaScript (extension)
+  # JavaScript (extension): package.json + yarn.lock
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -11,7 +21,7 @@ updates:
         patterns:
           - '*'
 
-  # JavaScript (Playwright UI tests)
+  # JavaScript (Playwright UI tests): ui-tests/package.json + ui-tests/yarn.lock
   - package-ecosystem: npm
     directory: /ui-tests
     schedule:
@@ -22,20 +32,35 @@ updates:
         patterns:
           - '*'
 
-  # Python (extension build / packaging)
+  # Python (extension build / packaging): pyproject.toml
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      python-build:
+        patterns:
+          - '*'
 
-  # Python (JupyterLite build environment)
+  # Python (JupyterLite build environment): lite/requirements.txt
   - package-ecosystem: pip
     directory: /lite
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      jupyterlite-env:
+        patterns:
+          - '*'
 
-  # GitHub Actions
+  # GitHub Actions: .github/workflows/*
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns:
+          - '*'
