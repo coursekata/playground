@@ -32,27 +32,35 @@ updates:
         patterns:
           - '*'
 
-  # Python (extension build / packaging): pyproject.toml
+  # Python (pip). The root scan recurses into lite/, so ONE config covers both
+  # pyproject.toml and lite/requirements.txt. Grouped by COUPLING, not by manifest
+  # or build-vs-runtime:
+  #
+  #   jupyterlab-stack: the JupyterLab-line packages that MUST move together.
+  #     pyproject `jupyterlab` is the compile target; `jupyterlite` provides the
+  #     runtime JupyterLab frontend (jupyterlite-core 0.7.x -> JL 4.5.x; 0.8.x ->
+  #     4.6). Keeping them in one PR means a line move is reviewed + CI-validated
+  #     as a unit. NOTE: npm @jupyterlab/builder (the actual compiler) lives in the
+  #     js-dependencies group -- review that npm PR from the same weekly batch
+  #     alongside this one. Dependabot does not auto-coordinate the move; CI
+  #     (build wheel -> build app -> Playwright) is the validator.
+  #
+  #   build-tools: hatchling / hatch-nodejs-version -- build backend, independent
+  #     of the JupyterLab line.
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
-      python-build:
+      jupyterlab-stack:
         patterns:
-          - '*'
-
-  # Python (JupyterLite build environment): lite/requirements.txt
-  - package-ecosystem: pip
-    directory: /lite
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
-    groups:
-      jupyterlite-env:
+          - 'jupyterlab'
+          - 'jupyterlite*'
+      build-tools:
         patterns:
-          - '*'
+          - 'hatchling'
+          - 'hatch-*'
 
   # GitHub Actions: .github/workflows/*
   - package-ecosystem: github-actions
