@@ -19,6 +19,8 @@ import { placeholderPlugin } from './placeholders';
 import { EverywhereIcons } from './icons';
 import { sessionDialogs } from './dialogs';
 
+const _downloadCopyCount = new Map<string, number>();
+
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
   description: 'A Jupyter extension for k12 education',
@@ -41,10 +43,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         const content = panel.context.model.toJSON() as INotebookContent;
 
-        const suggestedName =
+        const baseName =
           panel.context.path && panel.context.path !== 'Untitled.ipynb'
             ? panel.context.path.replace(/\.ipynb$/i, '')
             : generateDefaultNotebookName();
+        const copyN = (_downloadCopyCount.get(baseName) ?? 0) + 1;
+        _downloadCopyCount.set(baseName, copyN);
+        const suggestedName = copyN === 1 ? `${baseName}_copy` : `${baseName}_copy${copyN}`;
 
         const input = document.createElement('input');
         input.value = suggestedName;
@@ -58,7 +63,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         const result = await showDialog({
           title: 'Download notebook as…',
           body,
-          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
+          buttons: [Dialog.cancelButton({ className: 'ck-btn' }), Dialog.okButton({ label: 'Download', className: 'ck-btn' })]
         });
 
         if (!result.button.accept) {
@@ -80,6 +85,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
+        try { sessionStorage.setItem(`ck-last-downloaded:${panel.context.path}`, JSON.stringify(content.cells ?? [])); } catch {}
       }
     });
 
@@ -95,41 +101,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
-        const suggestedName =
-          panel.context.path && panel.context.path !== 'Untitled.ipynb'
-            ? panel.context.path.replace(/\.ipynb$/i, '')
-            : generateDefaultNotebookName();
-
-        const input = document.createElement('input');
-        input.value = suggestedName;
-        input.style.width = '100%';
-        input.style.boxSizing = 'border-box';
-        input.style.padding = '8px';
-
-        const body = new Widget();
-        body.node.appendChild(input);
-
-        const result = await showDialog({
-          title: 'Download PDF as…',
-          body,
-          buttons: [Dialog.cancelButton(), Dialog.okButton({ label: 'Download' })]
-        });
-
-        if (!result.button.accept) {
-          return;
-        }
-
-        const rawName = input.value.trim() || suggestedName;
-
         try {
-          await exportNotebookAsPDF(panel, rawName);
+          await exportNotebookAsPDF(panel);
         } catch (error) {
           console.error('Failed to export notebook as PDF:', error);
-          await showDialog({
-            title: 'Error exporting PDF',
-            body: 'An error occurred while exporting the notebook as a PDF.',
-            buttons: [Dialog.okButton()]
-          });
         }
       }
     });
@@ -147,7 +122,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         const result = await showDialog({
           title: 'Would you like to restart the notebook\u2019s memory and rerun all cells?',
-          buttons: [Dialog.cancelButton({ label: 'Cancel' }), Dialog.okButton({ label: 'Restart' })]
+          buttons: [Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }), Dialog.okButton({ label: 'Restart', className: 'ck-btn' })]
         });
 
         if (result.button.accept) {
@@ -187,7 +162,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     app.commands.addKeyBinding({
       command: Commands.saveNotebookCommand,
       keys: ['Accel S'],
-      selector: '.jp-Notebook'
+      selector: '.jp-NotebookPanel'
     });
 
     commands.addCommand(Commands.switchKernelCommand, {

@@ -10,7 +10,11 @@ export class OpenDropdownButton extends ToolbarButton {
     openNewRNotebook: () => void,
     openNewPythonNotebook: () => void,
     downloadNotebook: () => void,
-    downloadPDF: () => void
+    downloadPDF: () => void,
+    openFromGitHub: () => void,
+    copyShareLink: () => void,
+    isCopyShareLinkEnabled: () => boolean,
+    getRecentItems: () => Array<{ label: string; open: () => void; isCurrent: () => boolean }>
   ) {
     const commandOpenFile = 'jupytereverywhere:file-open-from-file';
     const commandOpenUrl = 'jupytereverywhere:file-open-from-url';
@@ -18,6 +22,8 @@ export class OpenDropdownButton extends ToolbarButton {
     const commandNewPython = 'jupytereverywhere:file-new-python-notebook';
     const commandDownload = 'jupytereverywhere:file-download-notebook';
     const commandDownloadPDF = 'jupytereverywhere:file-download-pdf';
+    const commandOpenGitHub = 'jupytereverywhere:file-open-from-github';
+    const commandCopyShareLink = 'jupytereverywhere:file-copy-share-link';
 
     if (!commands.hasCommand(commandOpenFile)) {
       commands.addCommand(commandOpenFile, {
@@ -73,6 +79,40 @@ export class OpenDropdownButton extends ToolbarButton {
       });
     }
 
+    if (!commands.hasCommand(commandOpenGitHub)) {
+      commands.addCommand(commandOpenGitHub, {
+        label: 'Open from GitHub',
+        execute: () => {
+          openFromGitHub();
+        }
+      });
+    }
+
+    if (!commands.hasCommand(commandCopyShareLink)) {
+      commands.addCommand(commandCopyShareLink, {
+        label: 'Copy link to GitHub source',
+        isEnabled: () => isCopyShareLinkEnabled(),
+        execute: () => {
+          copyShareLink();
+        }
+      });
+    }
+
+    const commandRecent = 'jupytereverywhere:open-recent';
+    if (!commands.hasCommand(`${commandRecent}-0`)) {
+      for (let i = 0; i < 5; i++) {
+        const idx = i;
+        commands.addCommand(`${commandRecent}-${idx}`, {
+          label: () => getRecentItems()[idx]?.label ?? '',
+          isVisible: () => idx < getRecentItems().length,
+          isToggled: () => getRecentItems()[idx]?.isCurrent() ?? false,
+          execute: () => {
+            getRecentItems()[idx]?.open();
+          }
+        });
+      }
+    }
+
     super({
       label: 'File',
       tooltip: 'File actions',
@@ -84,15 +124,28 @@ export class OpenDropdownButton extends ToolbarButton {
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandOpenFile });
         menu.addItem({ command: commandOpenUrl });
+        menu.addItem({ command: commandOpenGitHub });
+
+        const recents = getRecentItems();
+        if (recents.length > 0) {
+          menu.addItem({ type: 'separator' });
+          for (let i = 0; i < recents.length; i++) {
+            menu.addItem({ command: `${commandRecent}-${i}` });
+          }
+        }
+
         menu.addItem({ type: 'separator' });
         menu.addItem({ command: commandDownload });
         menu.addItem({ command: commandDownloadPDF });
+        menu.addItem({ type: 'separator' });
+        menu.addItem({ command: commandCopyShareLink });
 
         const anchor = this.node.getBoundingClientRect();
         menu.open(anchor.left, anchor.bottom);
 
         menu.aboutToClose.connect(() => {
-          menu.dispose();
+          // Defer dispose to avoid dispose→close→onCloseRequest→aboutToClose→dispose recursion
+          setTimeout(() => { menu.dispose(); }, 0);
         });
       }
     });

@@ -12,7 +12,7 @@ class JESessionContextDialogs extends SessionContextDialogs {
   async restart(sessionContext: ISessionContext): Promise<boolean> {
     const result = await showDialog({
       title: 'Would you like to restart the notebook’s memory?',
-      buttons: [Dialog.cancelButton({ label: 'Cancel' }), Dialog.okButton({ label: 'Restart' })]
+      buttons: [Dialog.cancelButton({ label: 'Cancel', className: 'ck-btn' }), Dialog.okButton({ label: 'Restart', className: 'ck-btn' })]
     });
     if (result.button.accept) {
       try {

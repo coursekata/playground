@@ -35,7 +35,11 @@ export function detectNotebookLanguage(notebook: Partial<INotebookContent>): 'py
  * @returns {Promise<void>} - A promise that resolves when the upload is complete.
  */
 
-export async function openNotebookContent(parsed: INotebookContent): Promise<void> {
+export async function openNotebookContent(
+  parsed: INotebookContent,
+  sourceUrl?: string,
+  filename?: string
+): Promise<void> {
   const lang = detectNotebookLanguage(parsed);
   console.log(`Detected notebook language: ${lang}`);
   if (!lang) {
@@ -50,6 +54,12 @@ export async function openNotebookContent(parsed: INotebookContent): Promise<voi
   const uploadId = UUID.uuid4();
   const serialised = JSON.stringify(parsed);
   localStorage.setItem(`uploaded-notebook:${uploadId}`, serialised);
+  if (sourceUrl) {
+    localStorage.setItem(`uploaded-notebook-source:${uploadId}`, sourceUrl);
+  }
+  if (filename) {
+    localStorage.setItem(`uploaded-notebook-name:${uploadId}`, filename);
+  }
 
   const target = new URL(window.location.href);
   target.search = '';
@@ -63,7 +73,7 @@ export async function handleNotebookUpload(file: File): Promise<void> {
     const content = await file.text();
     const parsed = JSON.parse(content) as INotebookContent;
 
-    await openNotebookContent(parsed);
+    await openNotebookContent(parsed, undefined, file.name);
   } catch (err) {
     if (err instanceof DOMException && err.name === 'QuotaExceededError') {
       const result = await showDialog({

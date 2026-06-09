@@ -39,3 +39,32 @@ export function generateDefaultNotebookName(): string {
 
   return `Notebook_${date}_${time}`;
 }
+
+export function showSavedToast(message = 'Changes saved'): void {
+  const el = document.createElement('div');
+  el.textContent = message;
+  el.style.cssText = [
+    'position:fixed',
+    'top:50%',
+    'left:50%',
+    'transform:translate(-50%,-50%)',
+    'background:#f5f3ff',
+    'color:#412c88',
+    'border:2px solid #412c88',
+    'padding:18px 48px',
+    'border-radius:10px',
+    'font-size:16px',
+    'font-weight:600',
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    'box-shadow:0 4px 20px rgba(0,0,0,0.12)',
+    'z-index:10000',
+    'pointer-events:none',
+    'opacity:1',
+    'transition:opacity 0.4s ease',
+  ].join(';');
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 400);
+  }, 1500);
+}

@@ -78,6 +78,10 @@
         "rank": 1000
       },
       {
+        "name": "kernelStatus",
+        "disabled": true
+      },
+      {
         "name": "insert-text",
         "command": "apputils:run-all-enabled",
         "args": {

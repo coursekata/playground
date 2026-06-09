@@ -100,14 +100,68 @@
   top: 5px;
 }
 
+.jp-InputArea-prompt {
+  overflow: visible !important;
+}
+
 .jp-InputArea-prompt-run.je-cell-run-button {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%) scale(1.15) !important;
   opacity: 0 !important;
+  pointer-events: none;
   transition: opacity 0.15s ease-in-out;
   color: #fe5b7d !important;
+  overflow: visible;
+}
+
+.je-cell-run-button jp-button {
+  --focus-stroke-outer: transparent !important;
+  --focus-stroke-inner: transparent !important;
+}
+
+.je-cell-run-button jp-button::part(control),
+.je-cell-run-button jp-button:focus::part(control),
+.je-cell-run-button jp-button:focus-visible::part(control) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.je-cell-run-button:focus,
+.je-cell-run-button:focus-visible {
+  outline: none !important;
+}
+
+.jp-InputArea-prompt-run.je-cell-run-button.je-cell-running::after {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  top: 50%;
+  left: 50%;
+  margin-top: -13px;
+  margin-left: -13px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  border-top-color: #fe5b7d;
+  animation: je-run-spin 0.7s linear infinite;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+@keyframes je-run-spin {
+  to { transform: rotate(360deg); }
+}
+
+.jp-OutputArea-output pre {
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.jp-Launcher {
+  display: none !important;
 }
 
 .jp-RawCell .jp-InputArea-prompt-run.je-cell-run-button {
@@ -116,6 +170,7 @@
 
 .jp-Cell.jp-mod-active:not(.jp-RawCell) .jp-InputArea-prompt-run.je-cell-run-button {
   opacity: 1 !important;
+  pointer-events: auto;
 }
 
 .jp-InputArea-prompt-run.je-cell-run-button circle {
@@ -351,6 +406,16 @@ jp-button[aria-label='Download'] svg {
 .jp-NotebookPanel-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Hide the ReactiveToolbar popup opener ("...") — overflow is handled by
+   disabling the resizer in JS (notebook.tsx widgetAdded) and by making
+   the toolbar scrollable above as a safety net. */
+.jp-NotebookPanel-toolbar .jp-Toolbar-responsive-opener {
+  display: none !important;
 }
 
 .ck-logo-button {
@@ -571,5 +636,294 @@ jp-button[aria-label='Download'] svg {
 
   100% {
     opacity: 0.45;
+  }
+}
+
+/* GitHub file browser dialog */
+
+.je-GitHubBrowser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 460px;
+  padding: 4px 0;
+  font-family: var(--je-font-family);
+}
+
+.je-GitHubBrowser-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.je-GitHubBrowser-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: var(--je-font-family);
+  border: 1px solid var(--je-border-color);
+  border-radius: 4px;
+  outline: none;
+}
+
+.je-GitHubBrowser-input:focus {
+  border-color: var(--je-slate-blue);
+}
+
+.je-GitHubBrowser-browse-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--je-font-family);
+  background: var(--je-slate-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.je-GitHubBrowser-browse-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.je-GitHubBrowser-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.je-GitHubBrowser-recent-label {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.je-GitHubBrowser-recent-item {
+  cursor: pointer;
+  color: var(--je-slate-blue);
+  text-decoration: underline;
+}
+
+.je-GitHubBrowser-recent-item:hover {
+  opacity: 0.75;
+}
+
+.je-GitHubBrowser-breadcrumb {
+  font-size: 12px;
+  color: #666;
+  padding: 2px 0;
+}
+
+.je-GitHubBrowser-sep {
+  color: #aaa;
+}
+
+.je-GitHubBrowser-repo-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.je-GitHubBrowser-crumb {
+  cursor: pointer;
+  color: var(--je-slate-blue);
+  text-decoration: underline;
+}
+
+.je-GitHubBrowser-crumb:hover {
+  opacity: 0.75;
+}
+
+.je-GitHubBrowser-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--je-border-color);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.je-GitHubBrowser-item {
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.je-GitHubBrowser-item:last-child {
+  border-bottom: none;
+}
+
+.je-GitHubBrowser-item:hover {
+  background: #f5f3ff;
+}
+
+.je-GitHubBrowser-item--selected {
+  background: #ede9fe;
+  font-weight: 500;
+}
+
+.je-GitHubBrowser-item--dir {
+  color: var(--je-slate-blue);
+  font-weight: 500;
+}
+
+.je-GitHubBrowser-item--file {
+  color: #333;
+}
+
+.je-GitHubBrowser-message {
+  padding: 16px 12px;
+  color: #888;
+  text-align: center;
+  font-size: 13px;
+}
+
+.je-GitHubBrowser-error {
+  padding: 12px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Checkmark for the currently-open notebook in the File menu recents list */
+.lm-Menu-item.lm-mod-toggled > .lm-Menu-itemIcon {
+  position: relative;
+}
+
+.lm-Menu-item.lm-mod-toggled > .lm-Menu-itemIcon::after {
+  content: '✓';
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--je-slate-blue, #5c8ede);
+  text-align: center;
+  line-height: 1;
+}
+
+/* ── Print / PDF export ──────────────────────────────────────────────────────
+   exportNotebookAsPDF() copies notebook.content.node.innerHTML into
+   #je-print-container (a clean div appended to <body>), then calls
+   window.print(). @media print hides everything else and shows only that div.
+   This sidesteps Lumino's absolute-position layout entirely:
+     • Rendered markdown — already in innerHTML as HTML, not raw text
+     • MathJax — already typeset as <mjx-container> elements
+     • Syntax-highlighted code — CodeMirror DOM already in innerHTML
+     • Cross-origin images — browser native print, no canvas restriction ── */
+
+/* Hidden in normal view; only shown during print */
+#je-print-container {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.75in;
+  }
+
+  /* Hide the entire Lumino app; show only our snapshot container */
+  body > *:not(#je-print-container) {
+    display: none !important;
+  }
+
+  #je-print-container {
+    display: block !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    background: white;
+  }
+
+  /* ── Cells ───────────────────────────────────────────────────────────── */
+  #je-print-container .jp-Cell {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    display: block !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 0 0.75em 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* ── Markdown cells ──────────────────────────────────────────────────── */
+  /* innerHTML includes both editor and rendered wrappers; show only rendered */
+  #je-print-container .jp-MarkdownCell .jp-Cell-inputWrapper {
+    display: none !important;
+  }
+  #je-print-container .jp-MarkdownCell .jp-Cell-outputWrapper {
+    display: block !important;
+  }
+  #je-print-container .jp-MarkdownCell .jp-RenderedMarkdown {
+    padding: 0 4px !important;
+  }
+
+  /* ── Hide UI chrome ──────────────────────────────────────────────────── */
+  #je-print-container .jp-InputArea-prompt,
+  #je-print-container .je-cell-run-button {
+    display: none !important;
+  }
+
+  /* Keep headings attached to the content that follows */
+  #je-print-container h1, #je-print-container h2, #je-print-container h3,
+  #je-print-container h4, #je-print-container h5, #je-print-container h6 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* ── Code editors (CodeMirror 6) ─────────────────────────────────────── */
+  #je-print-container .jp-CodeMirrorEditor,
+  #je-print-container .cm-editor,
+  #je-print-container .cm-scroller {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  #je-print-container .cm-content {
+    white-space: pre-wrap !important;
+    word-break: break-all;
+  }
+
+  /* ── Output areas ────────────────────────────────────────────────────── */
+  #je-print-container .jp-OutputArea,
+  #je-print-container .jp-OutputArea-child,
+  #je-print-container .jp-OutputArea-output {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+  #je-print-container pre {
+    white-space: pre-wrap !important;
+    overflow: visible !important;
+    word-break: break-all;
+  }
+
+  /* ── Images & figures ────────────────────────────────────────────────── */
+  #je-print-container img,
+  #je-print-container svg {
+    max-width: 100% !important;
+    height: auto !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+  #je-print-container table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9em;
+  }
+  #je-print-container th,
+  #je-print-container td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+  }
+  #je-print-container tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
