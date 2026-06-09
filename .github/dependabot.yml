@@ -1,36 +1,90 @@
 version: 2
 
-# Policy: group every ecosystem into a single weekly PR and ignore nothing.
-# JupyterLab follows semver for the 4.x line, so minor/patch bumps of the
-# framework (and its related @jupyterlite / pip runtime packages) are safe to
-# see and are validated end-to-end by CI (build wheel -> build the JupyterLite
-# app from it -> Playwright integration tests -> deploy on main) before anything
-# is merged. Grouping makes a framework bump arrive as ONE reviewable PR rather
-# than dozens. For npm<->pip coherence, review the npm and pip group PRs from
-# the same weekly batch together.
+# Policy: zero ignores -- every available update stays visible. Routine
+# minor/patch churn flows as one weekly group PR per ecosystem; updates a group
+# filters out (majors, and anything no group matches) still arrive as their own
+# individual PRs, so nothing is suppressed -- big moves are just unbundled from
+# routine noise. CI (build wheel -> build the JupyterLite app from it ->
+# Playwright integration tests -> deploy on main) is the merge gate. For
+# npm<->pip coherence, review the npm and pip group PRs from the same weekly
+# batch together.
 
 updates:
-  # JavaScript (extension): package.json + yarn.lock
+  # JavaScript (extension): package.json + yarn.lock. Two groups:
+  #
+  #   jupyterlab-framework: packages on the JupyterLab line, which must move as
+  #     one deliberate, coordinated unit. 4.5->4.6 is a MINOR, so without this
+  #     group the framework would slide into routine churn.
+  #       @jupyterlab/*  -- the framework, incl. @jupyterlab/builder (compiler)
+  #       @jupyterlite/* -- runtime app shell; 0.7.x bundles JL 4.5, 0.8.x -> 4.6
+  #       @lumino/*      -- the framework's widget toolkit
+  #       react*         -- JupyterLab 4.5 declares react ^18 as a host
+  #                         singleton, so React 19 is gated on JL 4.6; keeping
+  #                         react here folds that major into the framework PR
+  #                         instead of letting it arrive alone and unusable.
+  #     Uncapped (all update types) so the whole line lands in one PR. A real
+  #     line move ALSO needs the pip jupyterlab-stack PR, a hand-bump of
+  #     jupyterlite to the matching line, and the jupyterlab==X pins in
+  #     .github/build-extension/action.yml, .github/workflows/build.yml, and
+  #     pyproject's before-build hook -- review them as a unit.
+  #
+  #   js-dependencies: everything else, minor+patch only. Majors (typescript,
+  #     eslint, stylelint, ...) fall out of the group and arrive as individual
+  #     PRs -- visible, but each its own deliberate decision.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
+      jupyterlab-framework:
+        patterns:
+          - '@jupyterlab/*'
+          - '@jupyterlite/*'
+          - '@lumino/*'
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
       js-dependencies:
         patterns:
           - '*'
+        exclude-patterns:
+          - '@jupyterlab/*'
+          - '@jupyterlite/*'
+          - '@lumino/*'
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+        update-types:
+          - 'minor'
+          - 'patch'
 
-  # JavaScript (Playwright UI tests): ui-tests/package.json + ui-tests/yarn.lock
+  # JavaScript (Playwright UI tests): ui-tests/package.json + ui-tests/yarn.lock.
+  # Same shape as the root npm config: framework moves are deliberate, routine
+  # churn is capped at minor/patch, majors arrive as individual PRs.
   - package-ecosystem: npm
     directory: /ui-tests
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
+      jupyterlab-framework:
+        patterns:
+          - '@jupyterlab/*'
+          - '@jupyterlite/*'
+          - '@lumino/*'
       ui-test-dependencies:
         patterns:
           - '*'
+        exclude-patterns:
+          - '@jupyterlab/*'
+          - '@jupyterlite/*'
+          - '@lumino/*'
+        update-types:
+          - 'minor'
+          - 'patch'
 
   # Python (pip). The root scan recurses into lite/, so ONE config covers both
   # pyproject.toml and lite/requirements.txt. Grouped by COUPLING, not by manifest
