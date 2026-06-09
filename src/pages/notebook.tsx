@@ -11,7 +11,8 @@ import { INotebookContent } from '@jupyterlab/nbformat';
 import {
   IToolbarWidgetRegistry,
   ISessionContext,
-  createToolbarFactory
+  createToolbarFactory,
+  showErrorMessage
 } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
@@ -43,7 +44,6 @@ async function patchPyodideHttp(sessionContext: ISessionContext): Promise<void> 
     return;
   }
   if (kernel.name !== 'python') {
-    console.debug('Non-python kernel: not patching');
     return;
   }
   await kernel.requestExecute({
@@ -120,8 +120,6 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         await commands.execute('notebook:create-new', {
           kernelName: desiredKernel
         });
-
-        console.log(`Created new notebook with kernel: ${desiredKernel}`);
       } catch (error) {
         console.error('Failed to create new notebook:', error);
       }
@@ -158,7 +156,6 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         window.history.replaceState({}, '', currentUrl.toString());
 
         localStorage.removeItem(`uploaded-notebook:${id}`);
-        console.log(`Opened uploaded notebook: ${filename}`);
       } catch (error) {
         console.error('Failed to open uploaded notebook:', error);
         await createNewNotebook();
@@ -195,7 +192,7 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
         window.history.replaceState({}, '', currentUrl.toString());
       } catch (error) {
         console.error('Failed to open notebook from URL:', error);
-        alert('Failed to open notebook from URL.');
+        void showErrorMessage('Error', 'Failed to open notebook from URL.');
       }
     };
 
@@ -223,7 +220,6 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       if (url.searchParams.has('kernel')) {
         url.searchParams.delete('kernel');
         window.history.replaceState({}, '', url.toString());
-        console.log('Removed kernel param from URL after kernel init.');
       }
 
       panel.sessionContext.kernelChanged.connect(patchPyodideHttp);

@@ -40,7 +40,6 @@ export function detectNotebookLanguage(notebook: Partial<INotebookContent>): 'py
 
 export async function openNotebookContent(parsed: INotebookContent): Promise<void> {
   const lang = detectNotebookLanguage(parsed);
-  console.log(`Detected notebook language: ${lang}`);
   if (!lang) {
     await showErrorMessage(
       'Please open a valid notebook',

@@ -1,18 +1,35 @@
-# Creating a new release of Jupyter Everywhere
+# Releasing CourseKata Playground
 
-We release the extension bundled with the full JupyterLite application files as a tarball on GitHub Releases. To do so,
+CourseKata Playground is deployed as a static [JupyterLite](https://jupyterlite.readthedocs.io/)
+site to **GitHub Pages** at <https://play.coursekata.org>. Deployment is automatic: the `deploy`
+job in [`.github/workflows/build.yml`](.github/workflows/build.yml) publishes the built `dist/`
+to GitHub Pages on every push to `main`.
 
-1. Bump the version in the `package.json` file to the new version.
-2. Create a new tag with the same version, and push it to GitHub:
+There is no separate release tarball, GitHub Release, or external deployment step — **merging to
+`main` is the release**.
+
+## Cutting a release
+
+1. Update the version in `package.json` (the Python package version is derived from it via
+   `hatch-nodejs-version`). Use a major bump for breaking changes.
+2. Add a `CHANGELOG.md` entry describing the changes.
+3. Open a PR and merge to `main`. The `Build` workflow will:
+   - build the `jupytereverywhere` extension wheel,
+   - build the JupyterLite application (including the R and Python WebAssembly kernels), and
+   - deploy `dist/` to GitHub Pages → <https://play.coursekata.org>.
+
+## Updating Playwright snapshots
+
+The integration tests compare against reference images generated on Linux in CI. To regenerate
+them on a PR, comment `please update snapshots` on the PR; a CI job will rebuild the snapshots and
+commit them to the PR branch. See [`ui-tests/README.md`](ui-tests/README.md) for details.
+
+## Verifying a build locally
+
+To build and serve the full application locally before releasing:
 
 ```bash
-git tag -s vX.Y.Z -m "Release vX.Y.Z"
-git push origin vX.Y.Z # set the remote name and branch as appropriate, if contributing from a fork or other remote
+pip install -r lite/requirements.txt
+jlpm build:all
+python -m http.server --directory dist 3000
 ```
-
-3. The push will trigger the `.github/workflows/cd.yml` workflow, which will build the extension, install it, install JupyterLite,
-   build the JupyterLite static assets, and create a tarball with the resulting files. The tarball will be attached to a draft
-   GitHub Release. The workflow will then publish the release automatically.
-
-4. You may verify that the attached tarball contains the expected files, and proceed to deploy it with the sharing service
-   in [the `jupytereverywhere/infrastructure` repository](https://github.com/JupyterEverywhere/infrastructure).
