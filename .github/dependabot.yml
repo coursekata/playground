@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # JavaScript (extension)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      js-dependencies:
+        patterns:
+          - '*'
+
+  # JavaScript (Playwright UI tests)
+  - package-ecosystem: npm
+    directory: /ui-tests
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      ui-test-dependencies:
+        patterns:
+          - '*'
+
+  # Python (extension build / packaging)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Python (JupyterLite build environment)
+  - package-ecosystem: pip
+    directory: /lite
+    schedule:
+      interval: weekly
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
