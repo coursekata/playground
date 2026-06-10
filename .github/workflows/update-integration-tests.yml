@@ -39,7 +39,7 @@ jobs:
           GITHUB_EVENT_COMMENT_ID: ${{ github.event.comment.id }}
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }} # zizmor: ignore[artipacked]
 
@@ -80,10 +80,10 @@ jobs:
           fi
 
       - name: Base Setup
-        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@affc83be6020d529b9368cd4d63e467877606600 # v1
+        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@95d85449e4f3f352e261221f6529f8ed307f5728 # v1
 
       - name: Install micromamba
-        uses: mamba-org/setup-micromamba@b09ef9b599704322748535812ca03efb2625677b # v2.0.5
+        uses: mamba-org/setup-micromamba@d7c9bd84e824b79d2af72a2d4196c7f4300d3476 # v3.0.0
 
       - name: Install jlpm
         run: python -m pip install -U "jupyter-builder>=1.0.0,<2"
@@ -107,7 +107,7 @@ jobs:
           jlpm install
           jlpm build:all
 
-      - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots@affc83be6020d529b9368cd4d63e467877606600 # v1
+      - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots@95d85449e4f3f352e261221f6529f8ed307f5728 # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Playwright knows how to start JupyterLab server
