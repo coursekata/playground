@@ -123,7 +123,7 @@ test.describe('Kernel commands should use memory terminology', () => {
     const commandPromise = runCommand(page, 'notebook:restart-kernel');
 
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText(/Restart memory/i);
+    await expect(dialog).toContainText(/restart the notebook.*memory/i);
     expect(await dialog.screenshot()).toMatchSnapshot('restart-memory-dialog.png');
 
     await page.keyboard.press('Escape');
