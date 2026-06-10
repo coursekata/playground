@@ -9,9 +9,9 @@ declare global {
 }
 
 async function runCommand(page: Page, command: string, args: JSONObject = {}) {
-  await page.evaluate(
+  return await page.evaluate(
     async ({ command, args }) => {
-      window.jupyterapp.commands.execute(command, args);
+      return await window.jupyterapp.commands.execute(command, args);
     },
     { command, args }
   );
@@ -118,14 +118,18 @@ test.describe('Title of the pages should be "CourseKata Notebook"', () => {
 
 test.describe('Kernel commands should use memory terminology', () => {
   test('Restart memory command', async ({ page }) => {
-    const promise = runCommand(page, 'notebook:restart-kernel');
     const dialog = page.locator('.jp-Dialog-content');
 
+    const commandPromise = runCommand(page, 'notebook:restart-kernel');
+
     await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(/restart the notebook.*memory/i);
     expect(await dialog.screenshot()).toMatchSnapshot('restart-memory-dialog.png');
 
-    await dialog.press('Escape');
-    await promise;
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    await commandPromise;
   });
 
   test('Restart memory and run all cells command', async ({ page }) => {
