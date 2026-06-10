@@ -40,7 +40,7 @@
 
 ## Requirements
 
-Building this extension requires `jupyterlab==4.5.0a3` and the additional dependencies listed in `lite/requirements.txt`.
+Building this extension requires [`jupyter-builder`](https://github.com/jupyterlab/jupyter-builder) (which provides the `jlpm` and `jupyter-builder build` commands) and the additional dependencies listed in `lite/requirements.txt`. JupyterLab itself is only needed for local development, to run and test the extension in a live lab.
 
 ## Contributing
 
@@ -50,7 +50,7 @@ If you'd like to contribute (thanks!), please read the following instructions to
 
 Note: You will need Node.js to build the extension package.
 
-The `jlpm` command is provided by JupyterLab's pinned version of [`yarn`](https://yarnpkg.com/) that is installed with JupyterLab.
+The `jlpm` command is a pinned version of [`yarn`](https://yarnpkg.com/), provided by `jupyter-builder` (and also by JupyterLab when it is installed for local development).
 
 ```bash
 # Clone the repo to your local environment
